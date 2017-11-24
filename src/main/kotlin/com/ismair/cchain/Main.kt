@@ -2,21 +2,17 @@ package com.ismair.cchain
 
 import com.ismair.cchain.keys.privateKeyPKCS8
 import com.ismair.cchain.keys.publicKeyPKCS8
-import com.ismair.cchain.securebase.*
+import com.ismair.cchain.model.Booking
+import com.ismair.cchain.model.Confirmation
+import com.ismair.cchain.model.Transfer
+import com.ismair.cchain.securebase.SecureBaseClient
+import com.ismair.cchain.securebase.SecureBaseException
+import com.ismair.cchain.securebase.TDB
 import com.ismair.cchain.securebase.crypt.SecureBaseAESCipher
 import com.ismair.cchain.securebase.crypt.SecureBaseRSACipher
 import com.ismair.cchain.securebase.extensions.*
-import kotlinx.serialization.*
 import kotlinx.serialization.json.JSON
 import java.util.*
-
-data class Booking(val id: Int, val chain: String, val sender: String, val receiver: String, val amount: Int, val purpose: String)
-
-@Serializable
-data class Transfer(val receiver: String, val amount: Int, val purpose: String)
-
-@Serializable
-data class Confirmation(val transferId: Int, val sender: String, val amount: Int, val purpose: String)
 
 fun main(args : Array<String>) {
     println("starting C-cash ...")
