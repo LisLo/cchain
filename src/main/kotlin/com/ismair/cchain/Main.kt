@@ -10,8 +10,13 @@ import kotlinx.serialization.*
 import kotlinx.serialization.json.JSON
 import java.util.*
 
+data class Booking(val id: Int, val chain: String, val sender: String, val receiver: String, val amount: Int, val purpose: String)
+
 @Serializable
-data class Contract(val receiver: String, val amount: Int, val purpose: String)
+data class Transfer(val receiver: String, val amount: Int, val purpose: String)
+
+@Serializable
+data class Confirmation(val transferId: Int, val sender: String, val amount: Int, val purpose: String)
 
 fun main(args : Array<String>) {
     println("starting C-cash ...")
@@ -48,7 +53,7 @@ fun main(args : Array<String>) {
 
         println("login was successful: " + tdbSession + " until " + tdbExpirationDate)
 
-        val contracts = mutableListOf<Pair<Int, Contract>>()
+        val transfers = mutableListOf<Booking>()
         var countMistakes = 0
         val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
 
@@ -61,7 +66,8 @@ fun main(args : Array<String>) {
                             try {
                                 val cryptKey = rsaCipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
                                 val message = aesCipher.decrypt(cryptKey, it.document)
-                                contracts.add(Pair(it.tid, JSON.parse<Contract>(message)))
+                                val transfer = JSON.parse<Transfer>(message)
+                                transfers.add(Booking(it.tid, chainInfos.chain, it.sender, transfer.receiver, transfer.amount, transfer.purpose))
                             } catch (e: Exception) {
                                 ++countMistakes
                             }
@@ -69,14 +75,27 @@ fun main(args : Array<String>) {
             }
         }
 
-        println("transactions were successfully read, there are " + contracts.size + " open contracts")
+        println("transactions were successfully read, there are " + transfers.size + " open bookings")
         if (countMistakes > 0) {
             println("warning: " + countMistakes + " messages could not be parsed")
         }
 
-        contracts.forEach {
-            val contract = it.second
-            println("Überweisung über " + contract.amount + " mit Verwendungszweck " + contract.purpose)
+        transfers.forEach {
+            println("transfer of " + it.amount + " with purpose " + it.purpose)
+
+            val confirmation = Confirmation(it.id, it.sender, it.amount, it.purpose)
+            val pair = aesCipher.encrypt(JSON.stringify(confirmation))
+            val cryptKey = rsaCipher.encrypt(it.receiver.toPublicKey(), pair.first)
+            val document = pair.second
+            val signature = rsaCipher.sign(privateKey, document)
+
+            tdb.createNewTransaction(tdbSession, TDB.Transaction(
+                    it.chain,
+                    publicKeyPKCS8.encodeURIComponent(),
+                    it.receiver.encodeURIComponent(),
+                    document.encodeURIComponent(),
+                    cryptKey.encodeURIComponent(),
+                    signature.encodeURIComponent())).execute()
         }
     } catch (e: SecureBaseException) {
         println(e.message)
