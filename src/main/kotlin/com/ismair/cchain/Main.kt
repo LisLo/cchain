@@ -3,7 +3,12 @@ package com.ismair.cchain
 import com.ismair.cchain.keys.privateKeyPKCS8
 import com.ismair.cchain.keys.publicKeyPKCS8
 import com.ismair.cchain.securebase.*
+import kotlinx.serialization.*
+import kotlinx.serialization.json.JSON
 import java.util.*
+
+@Serializable
+data class Contract(val receiver: String, val amount: Int, val purpose: String)
 
 fun main(args : Array<String>) {
     println("starting C-cash ...")
@@ -40,22 +45,28 @@ fun main(args : Array<String>) {
 
         println("login was successful: " + tdbSession + " until " + tdbExpirationDate)
 
+        val contracts = mutableListOf<Pair<Int, Contract>>()
         val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
+
         tdb.getChains(tdbSession).execute().extractList().forEach {
-            val chainInfos = tdb.getTransactions(tdbSession!!, it.chain).execute().extractObj()
+            val chainInfos = tdb.getTransactions(tdbSession, it.chain).execute().extractObj()
             if (chainInfos.count > 0) {
-                val orders = chainInfos.transactions
+                chainInfos.transactions
                         .filter { it.receiver == publicKeyPKCS8WithoutNewLine }
                         .forEach {
-                            val cryptKey = rsaCipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
                             try {
-                                println("Encrypted Document: " + aesCipher.decrypt(cryptKey, it.document))
-                            } catch (e: IllegalArgumentException) {
-                                println("Document could not be decrypted")
-                            }
+                                val cryptKey = rsaCipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
+                                val message = aesCipher.decrypt(cryptKey, it.document)
+                                contracts.add(Pair(it.tid, JSON.parse<Contract>(message)))
+                            } catch (e: Exception) {
+                                println("transaction with id = " + it.tid + " in chain " + chainInfos.chain + " could not be read")                            }
                         }
             }
         }
+
+        println("transactions were successfully read, there are " + contracts.size + " open contracts")
+
+        // TODO
     } catch (e: SecureBaseException) {
         println(e.message)
     }

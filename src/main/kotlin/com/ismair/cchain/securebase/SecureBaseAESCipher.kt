@@ -23,7 +23,7 @@ class SecureBaseAESCipher {
         val ivSpec = IvParameterSpec(iv)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec)
         val cryptKey = bytesToHex(secretKey.encoded) + "$" + bytesToHex(ivSpec.iv)
-        val encryptedMsg = String(Base64.getEncoder().encode(cipher.doFinal(msg.toByteArray())))
+        val encryptedMsg = String(Base64.getMimeEncoder().encode(cipher.doFinal(msg.toByteArray())))
         return Pair(cryptKey, encryptedMsg)
     }
 
@@ -34,6 +34,7 @@ class SecureBaseAESCipher {
         val iv = hexToBytes(splitted[1])
         val ivSpec = IvParameterSpec(iv)
         cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec)
-        return String(cipher.doFinal(Base64.getDecoder().decode(msg)))
+        val tmp = Base64.getMimeDecoder().decode(msg)
+        return String(cipher.doFinal(tmp))
     }
 }
