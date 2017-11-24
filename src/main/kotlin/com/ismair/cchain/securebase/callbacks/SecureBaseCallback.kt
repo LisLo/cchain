@@ -1,5 +1,6 @@
-package com.ismair.cchain.securebase
+package com.ismair.cchain.securebase.callbacks
 
+import com.ismair.cchain.securebase.SecureBaseResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

@@ -1,4 +1,4 @@
-package com.ismair.cchain.securebase
+package com.ismair.cchain.securebase.crypt
 
 import java.security.Key
 import java.security.PrivateKey

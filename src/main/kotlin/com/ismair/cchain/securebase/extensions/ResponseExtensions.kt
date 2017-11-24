@@ -1,5 +1,7 @@
-package com.ismair.cchain.securebase
+package com.ismair.cchain.securebase.extensions
 
+import com.ismair.cchain.securebase.SecureBaseException
+import com.ismair.cchain.securebase.SecureBaseResponse
 import retrofit2.Response
 
 fun <T> Response<SecureBaseResponse<T>>.extract(): SecureBaseResponse<T> {

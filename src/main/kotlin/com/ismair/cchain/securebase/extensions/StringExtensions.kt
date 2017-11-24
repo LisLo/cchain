@@ -1,4 +1,4 @@
-package com.ismair.cchain.securebase
+package com.ismair.cchain.securebase.extensions
 
 import java.io.UnsupportedEncodingException
 import java.net.URLEncoder

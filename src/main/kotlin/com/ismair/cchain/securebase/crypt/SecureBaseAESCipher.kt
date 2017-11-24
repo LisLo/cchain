@@ -1,4 +1,4 @@
-package com.ismair.cchain.securebase
+package com.ismair.cchain.securebase.crypt
 
 import org.apache.commons.codec.binary.Hex
 import java.security.SecureRandom

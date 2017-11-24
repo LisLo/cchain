@@ -1,4 +1,6 @@
-package com.ismair.cchain.securebase
+package com.ismair.cchain.securebase.callbacks
+
+import com.ismair.cchain.securebase.SecureBaseResponse
 
 abstract class SecureBaseCallbackObj<T>() : SecureBaseCallback<T>() {
     abstract fun onSuccess(content: T)
