@@ -49,6 +49,7 @@ fun main(args : Array<String>) {
         println("login was successful: " + tdbSession + " until " + tdbExpirationDate)
 
         val contracts = mutableListOf<Pair<Int, Contract>>()
+        var countMistakes = 0
         val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
 
         tdb.getChains(tdbSession).execute().extractList().forEach {
@@ -62,14 +63,21 @@ fun main(args : Array<String>) {
                                 val message = aesCipher.decrypt(cryptKey, it.document)
                                 contracts.add(Pair(it.tid, JSON.parse<Contract>(message)))
                             } catch (e: Exception) {
-                                println("transaction with id = " + it.tid + " in chain " + chainInfos.chain + " could not be read")                            }
+                                ++countMistakes
+                            }
                         }
             }
         }
 
         println("transactions were successfully read, there are " + contracts.size + " open contracts")
+        if (countMistakes > 0) {
+            println("warning: " + countMistakes + " messages could not be parsed")
+        }
 
-        // TODO
+        contracts.forEach {
+            val contract = it.second
+            println("Überweisung über " + contract.amount + " mit Verwendungszweck " + contract.purpose)
+        }
     } catch (e: SecureBaseException) {
         println(e.message)
     }
