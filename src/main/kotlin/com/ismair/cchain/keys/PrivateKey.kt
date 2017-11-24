@@ -27,4 +27,4 @@ val privateKeyPKCS8 = "-----BEGIN PRIVATE KEY-----\n" +
         "7qoa8ubx/2OUWbnk01w931YJJrbeQmjC5EK4wpndF0WsBeVsgaQVxUbVnA0C0Ldi\n" +
         "887CIaDA0DP8/0l55QOS7UHNE7GxHaopwrHgDryxFQYC0LblnBkOeEJ9Rby6G1oV\n" +
         "tcHxPuWHUEsvNSAwpD+z8ku7\n" +
-        "-----END PRIVATE KEY-----\n"
+        "-----END PRIVATE KEY-----"

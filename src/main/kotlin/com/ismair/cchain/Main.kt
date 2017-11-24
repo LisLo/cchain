@@ -1,53 +1,60 @@
 package com.ismair.cchain
 
-import com.ismair.cchain.extensions.encodeURIComponent
-import com.ismair.cchain.extensions.sign
-import com.ismair.cchain.extensions.toPrivateKey
-import com.ismair.cchain.extensions.toPublicKey
 import com.ismair.cchain.keys.privateKeyPKCS8
 import com.ismair.cchain.keys.publicKeyPKCS8
 import com.ismair.cchain.securebase.*
-import org.spongycastle.jce.provider.BouncyCastleProvider
-import java.security.Security
 import java.util.*
-
-const val URL = "https://securebase.transbase.de:50443/REST/TDB/"
-const val USER = "SecureBase2017"
-const val PWD = "|NrBQF!ntpp'"
-val tdb = SecureBaseClient(URL, USER, PWD, TDB::class.java).service
 
 fun main(args : Array<String>) {
     println("starting C-cash ...")
 
-    Security.addProvider(BouncyCastleProvider())
+    println("initializing tdb service ...")
 
-    println("loading private and public key ...")
+    val URL = "https://securebase.transbase.de:50443/REST/TDB/"
+    val USER = "SecureBase2017"
+    val PWD = "|NrBQF!ntpp'"
+    val tdb = SecureBaseClient(URL, USER, PWD, TDB::class.java).service
+
+    println("initializing cryptographic libraries ...")
 
     val publicKey = publicKeyPKCS8.toPublicKey()
     val privateKey = privateKeyPKCS8.toPrivateKey()
 
-    println("trying to login ...")
+    val rsaCipher = SecureBaseRSACipher()
+    val aesCipher = SecureBaseAESCipher()
 
-    var tdbSession: String? = null
-    var tdbExpirationDate: Date? = null
+    println("trying to login to tdb ...")
 
     try {
-        if (tdbSession == null || tdbExpirationDate == null || tdbExpirationDate.before(Date())) {
-            val pubKey = publicKeyPKCS8.encodeURIComponent()
-            val randomToken = UUID.randomUUID().toString()
-            val content = tdb.connect(randomToken).execute().extractObj()
-            val loginToken = content.loginToken
-            val signature = loginToken.sign(privateKey).encodeURIComponent()
-            val content2 = tdb.login(TDB.Credentials(pubKey, loginToken, signature)).execute().extractObj()
-            val calendar = Calendar.getInstance()
-            calendar.time = content2.started
-            calendar.add(Calendar.SECOND, content2.timeout)
-            tdbExpirationDate = Date(calendar.timeInMillis)
-            tdbSession = content2.session
+        val pubKey = publicKeyPKCS8.encodeURIComponent()
+        val randomToken = UUID.randomUUID().toString()
+        val content = tdb.connect(randomToken).execute().extractObj()
+        val loginToken = content.loginToken
+        val signature = rsaCipher.sign(privateKey, loginToken).encodeURIComponent()
+        val content2 = tdb.login(TDB.Credentials(pubKey, loginToken, signature)).execute().extractObj()
+        val calendar = Calendar.getInstance()
+        calendar.time = content2.started
+        calendar.add(Calendar.SECOND, content2.timeout)
+        val tdbExpirationDate = Date(calendar.timeInMillis)
+        val tdbSession = content2.session
 
-            println("login was successful: " + tdbSession + " " + tdbExpirationDate)
+        println("login was successful: " + tdbSession + " until " + tdbExpirationDate)
 
-            tdb.getChains(tdbSession).execute().extractList().forEach { println(it.chain) }
+        val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
+        tdb.getChains(tdbSession).execute().extractList().forEach {
+            val chainInfos = tdb.getTransactions(tdbSession!!, it.chain).execute().extractObj()
+            if (chainInfos.count > 0) {
+                val orders = chainInfos.transactions
+                        .filter { it.receiver == publicKeyPKCS8WithoutNewLine }
+                        .forEach {
+                            val cryptKey = rsaCipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
+                            try {
+                                println("Encrypted Document: " + aesCipher.decrypt(cryptKey, it.document))
+                            } catch (e: IllegalArgumentException) {
+                                println("Document could not be decrypted")
+                            }
+                        }
+            }
         }
     } catch (e: SecureBaseException) {
         println(e.message)

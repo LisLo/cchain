@@ -8,4 +8,4 @@ val publicKeyPKCS8 = "-----BEGIN PUBLIC KEY-----\n" +
         "WEUs5AyOlbthtRzM9eYLyr6WMwyWwVwOomL4ioCC4Xl/duWJuSvGaJPXwaRVlvrj\n" +
         "Y1e7bY4rLyOU3CtTDawc5Hb03D7xlPhO8Q7GXYXJ1mCZCsU5XU22B9uFgh10F77G\n" +
         "9QIDAQAB\n" +
-        "-----END PUBLIC KEY-----\n"
+        "-----END PUBLIC KEY-----"

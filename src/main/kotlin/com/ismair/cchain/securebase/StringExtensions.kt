@@ -1,12 +1,13 @@
-package com.ismair.cchain.extensions
+package com.ismair.cchain.securebase
 
 import java.io.UnsupportedEncodingException
 import java.net.URLEncoder
-import java.security.*
+import java.security.KeyFactory
+import java.security.PrivateKey
+import java.security.PublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.*
-import javax.crypto.Cipher
 
 fun String.encodeURIComponent(): String {
     var result: String
@@ -33,7 +34,7 @@ fun String.toPublicKey(): PublicKey {
             .replace("\n", "")
     val encoded = Base64.getDecoder().decode(stripped)
     val keySpec = X509EncodedKeySpec(encoded)
-    val kf = KeyFactory.getInstance("RSA", "SC")
+    val kf = KeyFactory.getInstance("RSA")
     return kf.generatePublic(keySpec)
 }
 
@@ -44,26 +45,6 @@ fun String.toPrivateKey(): PrivateKey {
             .replace("\n", "")
     val encoded = Base64.getDecoder().decode(stripped)
     val keySpec = PKCS8EncodedKeySpec(encoded)
-    val kf = KeyFactory.getInstance("RSA", "SC")
+    val kf = KeyFactory.getInstance("RSA")
     return kf.generatePrivate(keySpec)
-}
-
-fun crypt(key: Key, message: ByteArray, mode: Int): ByteArray {
-    val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-    cipher.init(mode, key)
-    return cipher.doFinal(message)
-}
-
-fun String.encrypt(publicKey: PublicKey)
-        = Base64.getEncoder().encodeToString(crypt(publicKey, this.toByteArray(), Cipher.ENCRYPT_MODE))
-
-fun String.decrypt(privateKey: PrivateKey)
-        = String(crypt(privateKey, Base64.getDecoder().decode(this.toByteArray()), Cipher.DECRYPT_MODE))
-
-fun String.sign(privateKey: PrivateKey): String {
-    val privateSignature = Signature.getInstance("SHA256withRSA")
-    privateSignature.initSign(privateKey)
-    privateSignature.update(this.toByteArray())
-    val signature = privateSignature.sign()
-    return Base64.getEncoder().encodeToString(signature)
 }
