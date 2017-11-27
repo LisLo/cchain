@@ -29,9 +29,10 @@ fun String.encodeURIComponent(): String {
 
 fun String.toPublicKey(): PublicKey {
     val stripped = this
-            .replace("-----BEGIN PUBLIC KEY-----\n", "")
+            .replace("-----BEGIN PUBLIC KEY-----", "")
             .replace("-----END PUBLIC KEY-----", "")
             .replace("\n", "")
+            .replace(" ", "")
     val encoded = Base64.getDecoder().decode(stripped)
     val keySpec = X509EncodedKeySpec(encoded)
     val kf = KeyFactory.getInstance("RSA")

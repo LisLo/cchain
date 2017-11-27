@@ -59,7 +59,7 @@ fun main(args : Array<String>) {
 
         println("login was successful: " + tdbSession + " until " + tdbExpirationDate)
 
-        val knownTransferIds = dao.queryForAll().map { it.id }
+        val knownTransferIds = dao.queryForAll().map { it.transferId }
         val transfers = mutableListOf<Booking>()
         var countMistakes = 0
         val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
@@ -88,21 +88,36 @@ fun main(args : Array<String>) {
         }
 
         transfers.forEach {
-            println("transfer of " + it.amount + " with purpose " + it.purpose)
+            println("processing transfer of " + it.amount + "€ with purpose " + it.purpose)
 
-            val confirmation = Confirmation(it.id, it.sender, it.amount, it.purpose)
-            val pair = aesCipher.encrypt(JSON.stringify(confirmation))
-            val cryptKey = rsaCipher.encrypt(it.receiver.toPublicKey(), pair.first)
-            val document = pair.second
-            val signature = rsaCipher.sign(privateKey, document)
+            val confirmation1 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
+            val pair1 = aesCipher.encrypt(JSON.stringify(confirmation1))
+            val cryptKey1 = rsaCipher.encrypt(it.receiver.toPublicKey(), pair1.first)
+            val document1 = pair1.second
+            val signature1 = rsaCipher.sign(privateKey, document1)
 
             tdb.createNewTransaction(tdbSession, TDB.Transaction(
                     it.chain,
                     publicKeyPKCS8.encodeURIComponent(),
                     it.receiver.encodeURIComponent(),
-                    document.encodeURIComponent(),
-                    cryptKey.encodeURIComponent(),
-                    signature.encodeURIComponent())).execute()
+                    document1.encodeURIComponent(),
+                    cryptKey1.encodeURIComponent(),
+                    signature1.encodeURIComponent())).execute()
+
+            val confirmation2 = Confirmation(it.transferId, it.receiver, -it.amount, it.purpose)
+            val pair2 = aesCipher.encrypt(JSON.stringify(confirmation2))
+            val cryptKey2 = rsaCipher.encrypt(it.sender.toPublicKey(), pair2.first)
+            val document2 = pair2.second
+            val signature2 = rsaCipher.sign(privateKey, document2)
+
+            tdb.createNewTransaction(tdbSession, TDB.Transaction(
+                    it.chain,
+                    publicKeyPKCS8.encodeURIComponent(),
+                    it.sender.encodeURIComponent(),
+                    document2.encodeURIComponent(),
+                    cryptKey2.encodeURIComponent(),
+                    signature2.encodeURIComponent())).execute()
+
             dao.create(it)
         }
     } catch (e: SecureBaseException) {
