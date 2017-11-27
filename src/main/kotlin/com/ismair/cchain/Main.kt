@@ -11,11 +11,21 @@ import com.ismair.cchain.securebase.TDB
 import com.ismair.cchain.securebase.crypt.SecureBaseAESCipher
 import com.ismair.cchain.securebase.crypt.SecureBaseRSACipher
 import com.ismair.cchain.securebase.extensions.*
+import com.j256.ormlite.dao.DaoManager
+import com.j256.ormlite.jdbc.JdbcConnectionSource
+import com.j256.ormlite.table.TableUtils
 import kotlinx.serialization.json.JSON
 import java.util.*
 
 fun main(args : Array<String>) {
     println("starting C-cash ...")
+
+    println("initializing sqlite ...")
+
+    val DB_CONNECTION_STRING = "jdbc:sqlite:./ccash.db"
+    val connectionSource = JdbcConnectionSource(DB_CONNECTION_STRING)
+    val dao = DaoManager.createDao(connectionSource, Booking::class.java)
+    TableUtils.createTableIfNotExists(connectionSource, Booking::class.java)
 
     println("initializing tdb service ...")
 
@@ -49,6 +59,7 @@ fun main(args : Array<String>) {
 
         println("login was successful: " + tdbSession + " until " + tdbExpirationDate)
 
+        val knownTransferIds = dao.queryForAll().map { it.id }
         val transfers = mutableListOf<Booking>()
         var countMistakes = 0
         val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
@@ -57,7 +68,7 @@ fun main(args : Array<String>) {
             val chainInfos = tdb.getTransactions(tdbSession, it.chain).execute().extractObj()
             if (chainInfos.count > 0) {
                 chainInfos.transactions
-                        .filter { it.receiver == publicKeyPKCS8WithoutNewLine }
+                        .filter { it.receiver == publicKeyPKCS8WithoutNewLine && !knownTransferIds.contains(it.tid) }
                         .forEach {
                             try {
                                 val cryptKey = rsaCipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
@@ -92,6 +103,7 @@ fun main(args : Array<String>) {
                     document.encodeURIComponent(),
                     cryptKey.encodeURIComponent(),
                     signature.encodeURIComponent())).execute()
+            dao.create(it)
         }
     } catch (e: SecureBaseException) {
         println(e.message)
