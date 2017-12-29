@@ -76,29 +76,27 @@ fun main(args : Array<String>) {
             val openBookings = mutableListOf<Booking>()
 
             allTransactions
-                    .filter { it.second.sender == publicKeyPKCS8WithoutNewLine }
+                    .filter { it.second.sender == publicKeyPKCS8WithoutNewLine && !it.second.cryptKeySender.isNullOrEmpty() }
                     .forEach {
                         try {
-                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKeySender)
+                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKeySender!!.replace(" ", ""))
                             val document = aesCipher.decrypt(encryptedCryptKey, it.second.document)
                             val confirmation = JSON.parse<Confirmation>(document)
                             processedTransferIds.add(confirmation.transferId)
-                        } catch (e: Exception) {
-                            println("an error occured in sent transaction " + it.second.tid)
-                        }
+                        } catch (e: Exception) {}
                     }
 
+            println(processedTransferIds.size.toString() + " transfers already processed")
+
             allTransactions
-                    .filter { it.second.receiver == publicKeyPKCS8WithoutNewLine && !processedTransferIds.contains(it.second.tid) }
+                    .filter { it.second.receiver == publicKeyPKCS8WithoutNewLine && !it.second.cryptKey.isNullOrEmpty() && !processedTransferIds.contains(it.second.tid) }
                     .forEach {
                         try {
-                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKey)
+                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKey!!.replace(" ", ""))
                             val document = aesCipher.decrypt(encryptedCryptKey, it.second.document)
                             val transfer = JSON.parse<Transfer>(document)
                             openBookings.add(Booking(it.second.tid, it.first, it.second.sender, transfer.receiver, transfer.amount, transfer.purpose))
-                        } catch (e: Exception) {
-                            println("an error occured in received transaction " + it.second.tid)
-                        }
+                        } catch (e: Exception) {}
                     }
 
             println("processing " + openBookings.size + " open bookings ...")
