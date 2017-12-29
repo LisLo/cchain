@@ -10,21 +10,11 @@ import com.ismair.cchain.securebase.TDB
 import com.ismair.cchain.securebase.crypt.SecureBaseAESCipher
 import com.ismair.cchain.securebase.crypt.SecureBaseRSACipher
 import com.ismair.cchain.securebase.extensions.*
-import com.j256.ormlite.dao.DaoManager
-import com.j256.ormlite.jdbc.JdbcConnectionSource
-import com.j256.ormlite.table.TableUtils
 import kotlinx.serialization.json.JSON
 import java.util.*
 
 fun main(args : Array<String>) {
     println("starting C-cash ...")
-
-    println("initializing sqlite ...")
-
-    val DB_CONNECTION_STRING = "jdbc:sqlite:./ccash.db"
-    val connectionSource = JdbcConnectionSource(DB_CONNECTION_STRING)
-    val dao = DaoManager.createDao(connectionSource, Booking::class.java)
-    TableUtils.createTableIfNotExists(connectionSource, Booking::class.java)
 
     println("initializing tdb service ...")
 
@@ -68,34 +58,52 @@ fun main(args : Array<String>) {
                 println("login failed with an exception: " + e.message)
             }
         } else {
-            println("starting new search ...")
+            println("loading all transactions ...")
 
-            val knownTransferIds = dao.queryForAll().map { it.transferId }
-            val transfers = mutableListOf<Booking>()
-            var countMistakes = 0
-            val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
+            val allTransactions = mutableListOf<Pair<String, TDB.TransactionInfoContent>>()
 
             tdb.getChains(session).execute().extractList().forEach {
                 val chainInfos = tdb.getTransactions(session, it.chain).execute().extractObj()
                 if (chainInfos.count > 0) {
-                    chainInfos.transactions
-                            .filter { it.receiver == publicKeyPKCS8WithoutNewLine && !knownTransferIds.contains(it.tid) }
-                            .forEach {
-                                try {
-                                    val cryptKey = rsaCipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
-                                    val message = aesCipher.decrypt(cryptKey, it.document)
-                                    val transfer = JSON.parse<Transfer>(message)
-                                    transfers.add(Booking(it.tid, chainInfos.chain, it.sender, transfer.receiver, transfer.amount, transfer.purpose))
-                                } catch (e: Exception) {
-                                    ++countMistakes
-                                }
-                            }
+                    allTransactions.addAll(chainInfos.transactions.map { Pair(chainInfos.chain, it) })
                 }
             }
 
-            println("transactions were successfully read, there are " + transfers.size + " open bookings, " + countMistakes + " messages could not be parsed")
+            println("calculating open transfers ...")
 
-            transfers.forEach {
+            val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
+            val processedTransferIds = mutableListOf<Int>()
+            val openBookings = mutableListOf<Booking>()
+
+            allTransactions
+                    .filter { it.second.sender == publicKeyPKCS8WithoutNewLine }
+                    .forEach {
+                        try {
+                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKeySender)
+                            val document = aesCipher.decrypt(encryptedCryptKey, it.second.document)
+                            val confirmation = JSON.parse<Confirmation>(document)
+                            processedTransferIds.add(confirmation.transferId)
+                        } catch (e: Exception) {
+                            println("an error occured in sent transaction " + it.second.tid)
+                        }
+                    }
+
+            allTransactions
+                    .filter { it.second.receiver == publicKeyPKCS8WithoutNewLine && !processedTransferIds.contains(it.second.tid) }
+                    .forEach {
+                        try {
+                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKey)
+                            val document = aesCipher.decrypt(encryptedCryptKey, it.second.document)
+                            val transfer = JSON.parse<Transfer>(document)
+                            openBookings.add(Booking(it.second.tid, it.first, it.second.sender, transfer.receiver, transfer.amount, transfer.purpose))
+                        } catch (e: Exception) {
+                            println("an error occured in received transaction " + it.second.tid)
+                        }
+                    }
+
+            println("processing " + openBookings.size + " open bookings ...")
+
+            openBookings.forEach {
                 println("processing transfer of " + it.amount + "€ with purpose " + it.purpose)
 
                 val confirmation1 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
@@ -129,8 +137,6 @@ fun main(args : Array<String>) {
                         cryptKey2.encodeURIComponent(),
                         cryptKeySender2.encodeURIComponent(),
                         signature2.encodeURIComponent())).execute()
-
-                dao.create(it)
             }
         }
     }
