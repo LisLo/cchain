@@ -30,8 +30,10 @@ fun <T> SecureBaseResponse<T>.extractList(): List<T> {
         throw SecureBaseException("data is null")
     } else if (data.content == null) {
         throw SecureBaseException("content is null")
+    } else if (data.content.isEmpty()) {
+        return arrayListOf()
     } else {
-        return if (data.content.isNotEmpty()) data.content else arrayListOf<T>()
+        return data.content
     }
 }
 

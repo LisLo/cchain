@@ -35,6 +35,7 @@ fun main(args : Array<String>) {
 
     println("initializing cryptographic libraries ...")
 
+    val publicKey = publicKeyPKCS8.toPublicKey()
     val privateKey = privateKeyPKCS8.toPrivateKey()
     val rsaCipher = SecureBaseRSACipher()
     val aesCipher = SecureBaseAESCipher()
@@ -100,6 +101,7 @@ fun main(args : Array<String>) {
                 val confirmation1 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
                 val pair1 = aesCipher.encrypt(JSON.stringify(confirmation1))
                 val cryptKey1 = rsaCipher.encrypt(it.receiver.toPublicKey(), pair1.first)
+                val cryptKeySender1 = rsaCipher.encrypt(publicKey, pair1.first)
                 val document1 = pair1.second
                 val signature1 = rsaCipher.sign(privateKey, document1)
 
@@ -109,11 +111,13 @@ fun main(args : Array<String>) {
                         it.receiver.encodeURIComponent(),
                         document1.encodeURIComponent(),
                         cryptKey1.encodeURIComponent(),
+                        cryptKeySender1.encodeURIComponent(),
                         signature1.encodeURIComponent())).execute()
 
                 val confirmation2 = Confirmation(it.transferId, it.receiver, -it.amount, it.purpose)
                 val pair2 = aesCipher.encrypt(JSON.stringify(confirmation2))
                 val cryptKey2 = rsaCipher.encrypt(it.sender.toPublicKey(), pair2.first)
+                val cryptKeySender2 = rsaCipher.encrypt(publicKey, pair2.first)
                 val document2 = pair2.second
                 val signature2 = rsaCipher.sign(privateKey, document2)
 
@@ -123,6 +127,7 @@ fun main(args : Array<String>) {
                         it.sender.encodeURIComponent(),
                         document2.encodeURIComponent(),
                         cryptKey2.encodeURIComponent(),
+                        cryptKeySender2.encodeURIComponent(),
                         signature2.encodeURIComponent())).execute()
 
                 dao.create(it)

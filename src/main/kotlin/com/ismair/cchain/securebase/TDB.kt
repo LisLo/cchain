@@ -23,6 +23,7 @@ interface TDB {
             val receiver: String,
             val document: String,
             @SerializedName("cryptkey") val cryptKey: String,
+            @SerializedName("cryptkey_sender") val cryptKeySender: String,
             val signature: String
     )
 
@@ -76,6 +77,7 @@ interface TDB {
             val receiver: String,
             val document: String,
             @SerializedName("cryptkey") val cryptKey: String,
+            @SerializedName("cryptkey_sender") val cryptKeySender: String,
             val signature: String
     )
 

@@ -10,8 +10,10 @@ abstract class SecureBaseCallbackList<T>() : SecureBaseCallback<T>() {
             onError("data is null")
         } else if (response.data.content == null) {
             onError("content is null")
+        } else if (response.data.content.isEmpty()) {
+            onSuccess(arrayListOf<T>())
         } else {
-            onSuccess(if (response.data.content.isNotEmpty()) response.data.content else arrayListOf<T>())
+            onSuccess(response.data.content)
         }
     }
 }
