@@ -72,7 +72,7 @@ fun main(args : Array<String>) {
             println("calculating open transfers ...")
 
             val publicKeyPKCS8WithoutNewLine = publicKeyPKCS8.replace("\n", " ")
-            val processedTransferIds = mutableListOf<Int>()
+            val processedTransferIds = mutableSetOf<Int>()
             val openBookings = mutableListOf<Booking>()
 
             allTransactions
