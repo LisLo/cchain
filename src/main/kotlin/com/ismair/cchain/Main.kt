@@ -42,11 +42,11 @@ fun getSession(): String {
             val content2 = tdb.login(TDB.Credentials(pubKey, loginToken, signature)).execute().extractObj()
             val calendar = Calendar.getInstance()
             calendar.time = content2.started
-            calendar.add(Calendar.SECOND, content2.timeout)
+            calendar.add(Calendar.SECOND, content2.timeout - 10)
             session = content2.session
             expirationDate = Date(calendar.timeInMillis)
 
-            println("login was successful: " + session + " until " + expirationDate)
+            println("login was successful: $session until $expirationDate")
         } catch (e: Exception) {
             println("login failed with an exception: " + e.message)
         }
@@ -90,7 +90,7 @@ fun main(args : Array<String>) {
                     }
                 }
 
-        println(processedTransferIds.size.toString() + " transfers already processed")
+        println("${processedTransferIds.size} transfers already processed")
 
         allTransactions
                 .filter { it.second.receiver == publicKeyPKCS8WithoutNewLine && !it.second.cryptKey.isNullOrEmpty() && !processedTransferIds.contains(it.second.tid) }
@@ -104,10 +104,10 @@ fun main(args : Array<String>) {
                     }
                 }
 
-        println("processing " + openBookings.size + " open bookings ...")
+        println("processing ${openBookings.size} open bookings ...")
 
         openBookings.forEach {
-            println("processing transfer of " + it.amount + "€ with purpose " + it.purpose)
+            println("processing transfer of ${it.amount} c€ with purpose ${it.purpose}")
 
             val confirmation1 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
             val pair1 = aesCipher.encrypt(JSON.stringify(confirmation1))
