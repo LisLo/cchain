@@ -20,6 +20,14 @@ mainClassName = 'com.ismair.cchain.MainKt'
 
 defaultTasks 'run'
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.ismair.cchain.MainKt'
+    }
+
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
 repositories {
     mavenCentral()
     maven { url "https://kotlin.bintray.com/kotlinx" }
