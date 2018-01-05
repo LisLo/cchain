@@ -114,5 +114,11 @@ interface TDB {
     fun createNewTransaction(@Header("session") session: String, @Body transaction: Transaction): Call<SecureBaseResponse<TransactionCreatedContent>>
 
     @GET("transaction/info")
-    fun getTransactions(@Header("session") session: String, @Query("chain") chain: String): Call<SecureBaseResponse<TransactionInfosContent>>
+    fun getTransactionsByChain(@Header("session") session: String, @Query("chain") chain: String): Call<SecureBaseResponse<TransactionInfosContent>>
+
+    @GET("transaction/info")
+    fun getTransactionsBySender(@Header("session") session: String, @Query("sender") sender: String): Call<SecureBaseResponse<TransactionInfosContent>>
+
+    @GET("transaction/info")
+    fun getTransactionsByReceiver(@Header("session") session: String, @Query("receiver") chain: String): Call<SecureBaseResponse<TransactionInfosContent>>
 }

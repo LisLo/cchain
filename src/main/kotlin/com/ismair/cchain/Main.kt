@@ -67,7 +67,7 @@ fun main(args : Array<String>) {
             val chainMap = mutableMapOf<String, String>()
 
             tdb.getChains(getSession()).execute().extractList().forEach {
-                val chainInfos = tdb.getTransactions(getSession(), it.chain).execute().extractObj()
+                val chainInfos = tdb.getTransactionsByChain(getSession(), it.chain).execute().extractObj()
                 if (chainInfos.count > 0) {
                     allTransactions.addAll(chainInfos.transactions.map { Pair(chainInfos.chain, it) })
                 }
