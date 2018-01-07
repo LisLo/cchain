@@ -120,5 +120,5 @@ interface TDB {
     fun getTransactionsBySender(@Header("session") session: String, @Query("sender") sender: String): Call<SecureBaseResponse<TransactionInfosContent>>
 
     @GET("transaction/info")
-    fun getTransactionsByReceiver(@Header("session") session: String, @Query("receiver") chain: String): Call<SecureBaseResponse<TransactionInfosContent>>
+    fun getTransactionsByReceiver(@Header("session") session: String, @Query("receiver") receiver: String): Call<SecureBaseResponse<TransactionInfosContent>>
 }
