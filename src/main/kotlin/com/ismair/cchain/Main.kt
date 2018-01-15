@@ -65,7 +65,7 @@ fun main(args : Array<String>) {
         if (chain.count > 0) {
             chain.transactions.forEach {
                 try {
-                    val encryptedCryptKey = SecureBaseRSACipher.decrypt(privateKey, it.cryptKeySender.replace(" ", ""))
+                    val encryptedCryptKey = SecureBaseRSACipher.decrypt(privateKey, it.cryptKeySender!!.replace(" ", ""))
                     val document = SecureBaseAESCipher.decrypt(encryptedCryptKey, it.document)
                     val confirmation = JSON.parse<Confirmation>(document)
                     processedTransferIds.add(confirmation.transferId)
@@ -89,7 +89,7 @@ fun main(args : Array<String>) {
                     chain.transactions.forEach {
                         if (!processedTransferIds.contains(it.tid)) {
                             try {
-                                val encryptedCryptKey = SecureBaseRSACipher.decrypt(privateKey, it.cryptKey.replace(" ", ""))
+                                val encryptedCryptKey = SecureBaseRSACipher.decrypt(privateKey, it.cryptKey!!.replace(" ", ""))
                                 val document = SecureBaseAESCipher.decrypt(encryptedCryptKey, it.document)
                                 val transfer = JSON.parse<Transfer>(document)
                                 openBookings.add(Booking(it.tid, chain.chain, it.sender, transfer.receiver, transfer.amount, transfer.purpose))
