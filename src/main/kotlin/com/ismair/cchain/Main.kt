@@ -110,12 +110,12 @@ fun main(args : Array<String>) {
                     val confirmation1 = Confirmation(it.transferId, it.receiver, -it.amount, it.purpose)
                     val message1 = JSON.stringify(confirmation1)
                     val transaction1 = prepareTransaction(it.chain, publicKey, privateKey, publicKeyPKCS8, it.sender, message1, true)
-                    //tdb.createNewTransaction(getSession(), transaction1).execute()
+                    tdb.createNewTransaction(getSession(), transaction1).execute()
 
                     val confirmation2 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
                     val message2 = JSON.stringify(confirmation2)
                     val transaction2 = prepareTransaction(it.chain, publicKey, privateKey, publicKeyPKCS8, it.receiver, message2, true)
-                    //tdb.createNewTransaction(getSession(), transaction2).execute()
+                    tdb.createNewTransaction(getSession(), transaction2).execute()
 
                     processedTransferIds.add(it.transferId)
                 } catch (e: Exception) {
