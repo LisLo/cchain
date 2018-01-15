@@ -27,6 +27,10 @@ fun String.encodeURIComponent(): String {
     return result
 }
 
+fun String.encodeBase64() = Base64.getEncoder().encodeToString(this.toByteArray())
+
+fun String.decodeBase64() = String(Base64.getDecoder().decode(this.toByteArray()))
+
 fun String.toPublicKey(): PublicKey {
     val stripped = this
             .replace("-----BEGIN PUBLIC KEY-----", "")

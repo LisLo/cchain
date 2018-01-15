@@ -23,6 +23,6 @@ abstract class SecureBaseCallback<T> : Callback<SecureBaseResponse<T>> {
     }
 
     override fun onFailure(call: Call<SecureBaseResponse<T>>?, t: Throwable?) {
-        onError(if (t != null) "$t.cause - $t.message" else "unknown error")
+        onError(if (t != null) "${t.cause} - ${t.message}" else "unknown error")
     }
 }

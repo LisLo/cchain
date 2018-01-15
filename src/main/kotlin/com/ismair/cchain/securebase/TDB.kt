@@ -3,7 +3,7 @@ package com.ismair.cchain.securebase
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.*
-import java.util.Date
+import java.util.*
 
 interface TDB {
     data class Credentials(
@@ -22,8 +22,8 @@ interface TDB {
             val sender: String,
             val receiver: String,
             val document: String,
-            @SerializedName("cryptkey") val cryptKey: String?,
-            @SerializedName("cryptkey_sender") val cryptKeySender: String?,
+            @SerializedName("cryptkey") val cryptKey: String,
+            @SerializedName("cryptkey_sender") val cryptKeySender: String,
             val signature: String
     )
 
@@ -76,8 +76,8 @@ interface TDB {
             val sender: String,
             val receiver: String,
             val document: String,
-            @SerializedName("cryptkey") val cryptKey: String?,
-            @SerializedName("cryptkey_sender") val cryptKeySender: String?,
+            @SerializedName("cryptkey") val cryptKey: String,
+            @SerializedName("cryptkey_sender") val cryptKeySender: String,
             val signature: String
     )
 
@@ -114,11 +114,9 @@ interface TDB {
     fun createNewTransaction(@Header("session") session: String, @Body transaction: Transaction): Call<SecureBaseResponse<TransactionCreatedContent>>
 
     @GET("transaction/info")
-    fun getTransactionsByChain(@Header("session") session: String, @Query("chain") chain: String): Call<SecureBaseResponse<TransactionInfosContent>>
-
-    @GET("transaction/info")
-    fun getTransactionsBySender(@Header("session") session: String, @Query("sender") sender: String): Call<SecureBaseResponse<TransactionInfosContent>>
-
-    @GET("transaction/info")
-    fun getTransactionsByReceiver(@Header("session") session: String, @Query("receiver") receiver: String): Call<SecureBaseResponse<TransactionInfosContent>>
+    fun getTransactions(
+            @Header("session") session: String,
+            @Query("chain") chain: String,
+            @Query("sender") sender: String,
+            @Query("receiver") receiver: String): Call<SecureBaseResponse<TransactionInfosContent>>
 }

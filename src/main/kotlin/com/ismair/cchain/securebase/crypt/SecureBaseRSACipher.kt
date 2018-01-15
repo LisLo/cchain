@@ -1,20 +1,14 @@
 package com.ismair.cchain.securebase.crypt
 
-import java.security.Key
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.Signature
 import java.util.*
 import javax.crypto.Cipher
 
-class SecureBaseRSACipher {
-    val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
-    val signature = Signature.getInstance("SHA256withRSA")
-
-    private fun crypt(key: Key, message: ByteArray, mode: Int): ByteArray {
-        cipher.init(mode, key)
-        return cipher.doFinal(message)
-    }
+object SecureBaseRSACipher {
+    private val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
+    private val signature = Signature.getInstance("SHA256withRSA")
 
     fun encrypt(publicKey: PublicKey, message: String): String {
         cipher.init(Cipher.ENCRYPT_MODE, publicKey)
@@ -31,5 +25,11 @@ class SecureBaseRSACipher {
         signature.update(message.toByteArray())
         val signature = signature.sign()
         return Base64.getEncoder().encodeToString(signature)
+    }
+
+    fun verify(publicKey: PublicKey, sign: String, message: String): Boolean {
+        signature.initVerify(publicKey)
+        signature.update(message.toByteArray())
+        return signature.verify(Base64.getDecoder().decode(sign))
     }
 }

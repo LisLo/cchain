@@ -7,7 +7,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-class SecureBaseAESCipher {
+object SecureBaseAESCipher {
     private val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
     private val random = SecureRandom()
 
@@ -34,7 +34,6 @@ class SecureBaseAESCipher {
         val iv = hexToBytes(splitted[1])
         val ivSpec = IvParameterSpec(iv)
         cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec)
-        val tmp = Base64.getMimeDecoder().decode(msg)
-        return String(cipher.doFinal(tmp))
+        return String(cipher.doFinal(Base64.getMimeDecoder().decode(msg)))
     }
 }

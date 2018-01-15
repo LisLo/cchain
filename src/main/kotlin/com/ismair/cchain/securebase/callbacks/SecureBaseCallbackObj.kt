@@ -8,10 +8,8 @@ abstract class SecureBaseCallbackObj<T>() : SecureBaseCallback<T>() {
     override fun onSuccess(response: SecureBaseResponse<T>) {
         if (response.data == null) {
             onError("data is null")
-        } else if (response.data.content == null) {
-            onError("content is null")
-        } else if (response.data.content.isEmpty()) {
-            onError("content is empty and object was expected")
+        } else if (response.data.count != 1 || response.data.content == null || response.data.content.size != 1) {
+            onError("object was expected")
         } else {
             onSuccess(response.data.content[0])
         }

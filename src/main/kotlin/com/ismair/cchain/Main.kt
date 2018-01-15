@@ -5,26 +5,23 @@ import com.ismair.cchain.keys.publicKeyPKCS8
 import com.ismair.cchain.model.Booking
 import com.ismair.cchain.model.Confirmation
 import com.ismair.cchain.model.Transfer
-import com.ismair.cchain.securebase.SecureBaseClient
 import com.ismair.cchain.securebase.TDB
 import com.ismair.cchain.securebase.crypt.SecureBaseAESCipher
 import com.ismair.cchain.securebase.crypt.SecureBaseRSACipher
 import com.ismair.cchain.securebase.extensions.*
+import com.ismair.cchain.securebase.functions.createSecureBaseService
 import kotlinx.serialization.json.JSON
 import java.util.*
 
 val URL = "https://securebase.transbase.de:50443/REST/TDB/"
 val USER = "SecureBase2017"
 val PWD = "|NrBQF!ntpp'"
-val tdb = SecureBaseClient(URL, USER, PWD, TDB::class.java).service
+val tdb = createSecureBaseService(URL, USER, PWD, TDB::class.java)
 var tdbSession: String? = null
 var tdbExpirationDate: Date? = null
 
 val publicKey = publicKeyPKCS8.toPublicKey()
 val privateKey = privateKeyPKCS8.toPrivateKey()
-
-val rsaCipher = SecureBaseRSACipher()
-val aesCipher = SecureBaseAESCipher()
 
 fun getSession(): String {
     var session = tdbSession
@@ -38,7 +35,7 @@ fun getSession(): String {
             val randomToken = UUID.randomUUID().toString()
             val content = tdb.connect(randomToken).execute().extractObj()
             val loginToken = content.loginToken
-            val signature = rsaCipher.sign(privateKey, loginToken).encodeURIComponent()
+            val signature = SecureBaseRSACipher.sign(privateKey, loginToken).encodeURIComponent()
             val content2 = tdb.login(TDB.Credentials(pubKey, loginToken, signature)).execute().extractObj()
             val calendar = Calendar.getInstance()
             calendar.add(Calendar.SECOND, content2.timeout)
@@ -67,7 +64,7 @@ fun main(args : Array<String>) {
             val chainMap = mutableMapOf<String, String>()
 
             tdb.getChains(getSession()).execute().extractList().forEach {
-                val chainInfos = tdb.getTransactionsByChain(getSession(), it.chain).execute().extractObj()
+                val chainInfos = tdb.getTransactions(getSession(), it.chain, "", "").execute().extractObj()
                 if (chainInfos.count > 0) {
                     allTransactions.addAll(chainInfos.transactions.map { Pair(chainInfos.chain, it) })
                 }
@@ -88,8 +85,8 @@ fun main(args : Array<String>) {
                     .filter { it.second.sender == publicKeyPKCS8WithoutNewLine && !it.second.cryptKeySender.isNullOrEmpty() }
                     .forEach {
                         try {
-                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKeySender!!.replace(" ", ""))
-                            val document = aesCipher.decrypt(encryptedCryptKey, it.second.document)
+                            val encryptedCryptKey = SecureBaseRSACipher.decrypt(privateKey, it.second.cryptKeySender!!.replace(" ", ""))
+                            val document = SecureBaseAESCipher.decrypt(encryptedCryptKey, it.second.document)
                             val confirmation = JSON.parse<Confirmation>(document)
                             processedTransferIds.add(confirmation.transferId)
                         } catch (e: Exception) {
@@ -102,8 +99,8 @@ fun main(args : Array<String>) {
                     .filter { it.second.receiver == publicKeyPKCS8WithoutNewLine && !it.second.cryptKey.isNullOrEmpty() && !processedTransferIds.contains(it.second.tid) }
                     .forEach {
                         try {
-                            val encryptedCryptKey = rsaCipher.decrypt(privateKey, it.second.cryptKey!!.replace(" ", ""))
-                            val document = aesCipher.decrypt(encryptedCryptKey, it.second.document)
+                            val encryptedCryptKey = SecureBaseRSACipher.decrypt(privateKey, it.second.cryptKey!!.replace(" ", ""))
+                            val document = SecureBaseAESCipher.decrypt(encryptedCryptKey, it.second.document)
                             val transfer = JSON.parse<Transfer>(document)
                             openBookings.add(Booking(it.second.tid, it.first, it.second.sender, transfer.receiver, transfer.amount, transfer.purpose))
                         } catch (e: Exception) {
@@ -120,11 +117,11 @@ fun main(args : Array<String>) {
                     println("chain for receiver could not be determined, skipping transfer")
                 } else {
                     val confirmation1 = Confirmation(it.transferId, it.receiver, -it.amount, it.purpose)
-                    val pair1 = aesCipher.encrypt(JSON.stringify(confirmation1))
-                    val cryptKey1 = rsaCipher.encrypt(it.sender.toPublicKey(), pair1.first)
-                    val cryptKeySender1 = rsaCipher.encrypt(publicKey, pair1.first)
+                    val pair1 = SecureBaseAESCipher.encrypt(JSON.stringify(confirmation1))
+                    val cryptKey1 = SecureBaseRSACipher.encrypt(it.sender.toPublicKey(), pair1.first)
+                    val cryptKeySender1 = SecureBaseRSACipher.encrypt(publicKey, pair1.first)
                     val document1 = pair1.second
-                    val signature1 = rsaCipher.sign(privateKey, document1)
+                    val signature1 = SecureBaseRSACipher.sign(privateKey, document1)
 
                     tdb.createNewTransaction(getSession(), TDB.Transaction(
                             it.chain,
@@ -136,11 +133,11 @@ fun main(args : Array<String>) {
                             signature1.encodeURIComponent())).execute()
 
                     val confirmation2 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
-                    val pair2 = aesCipher.encrypt(JSON.stringify(confirmation2))
-                    val cryptKey2 = rsaCipher.encrypt(it.receiver.toPublicKey(), pair2.first)
-                    val cryptKeySender2 = rsaCipher.encrypt(publicKey, pair2.first)
+                    val pair2 = SecureBaseAESCipher.encrypt(JSON.stringify(confirmation2))
+                    val cryptKey2 = SecureBaseRSACipher.encrypt(it.receiver.toPublicKey(), pair2.first)
+                    val cryptKeySender2 = SecureBaseRSACipher.encrypt(publicKey, pair2.first)
                     val document2 = pair2.second
-                    val signature2 = rsaCipher.sign(privateKey, document2)
+                    val signature2 = SecureBaseRSACipher.sign(privateKey, document2)
 
                     tdb.createNewTransaction(getSession(), TDB.Transaction(
                             chainMap[receiverCleaned]!!,
