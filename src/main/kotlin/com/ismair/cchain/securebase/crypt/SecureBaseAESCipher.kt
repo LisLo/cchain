@@ -1,8 +1,8 @@
 package com.ismair.cchain.securebase.crypt
 
+import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
 import java.security.SecureRandom
-import java.util.*
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -23,7 +23,7 @@ object SecureBaseAESCipher {
         val ivSpec = IvParameterSpec(iv)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivSpec)
         val cryptKey = bytesToHex(secretKey.encoded) + "$" + bytesToHex(ivSpec.iv)
-        val encryptedMsg = String(Base64.getMimeEncoder().encode(cipher.doFinal(msg.toByteArray())))
+        val encryptedMsg = String(Base64.encodeBase64(cipher.doFinal(msg.toByteArray())))
         return Pair(cryptKey, encryptedMsg)
     }
 
@@ -34,6 +34,6 @@ object SecureBaseAESCipher {
         val iv = hexToBytes(splitted[1])
         val ivSpec = IvParameterSpec(iv)
         cipher.init(Cipher.DECRYPT_MODE, secretKey, ivSpec)
-        return String(cipher.doFinal(Base64.getMimeDecoder().decode(msg)))
+        return String(cipher.doFinal(Base64.decodeBase64(msg.toByteArray())))
     }
 }

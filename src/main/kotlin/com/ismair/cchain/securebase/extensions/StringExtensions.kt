@@ -1,5 +1,6 @@
 package com.ismair.cchain.securebase.extensions
 
+import org.apache.commons.codec.binary.Base64
 import java.io.UnsupportedEncodingException
 import java.net.URLEncoder
 import java.security.KeyFactory
@@ -7,7 +8,6 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
-import java.util.*
 
 fun String.encodeURIComponent(): String {
     var result: String
@@ -27,9 +27,9 @@ fun String.encodeURIComponent(): String {
     return result
 }
 
-fun String.encodeBase64() = Base64.getEncoder().encodeToString(this.toByteArray())
+fun String.encodeBase64() = String(Base64.encodeBase64(this.toByteArray()))
 
-fun String.decodeBase64() = String(Base64.getDecoder().decode(this.toByteArray()))
+fun String.decodeBase64() = String(Base64.decodeBase64(this.toByteArray()))
 
 fun String.toPublicKey(): PublicKey {
     val stripped = this
@@ -37,7 +37,7 @@ fun String.toPublicKey(): PublicKey {
             .replace("-----END PUBLIC KEY-----", "")
             .replace("\n", "")
             .replace(" ", "")
-    val encoded = Base64.getDecoder().decode(stripped)
+    val encoded = Base64.decodeBase64(stripped.toByteArray())
     val keySpec = X509EncodedKeySpec(encoded)
     val kf = KeyFactory.getInstance("RSA")
     return kf.generatePublic(keySpec)
@@ -48,7 +48,7 @@ fun String.toPrivateKey(): PrivateKey {
             .replace("-----BEGIN PRIVATE KEY-----\n", "")
             .replace("-----END PRIVATE KEY-----", "")
             .replace("\n", "")
-    val encoded = Base64.getDecoder().decode(stripped)
+    val encoded = Base64.decodeBase64(stripped.toByteArray())
     val keySpec = PKCS8EncodedKeySpec(encoded)
     val kf = KeyFactory.getInstance("RSA")
     return kf.generatePrivate(keySpec)
