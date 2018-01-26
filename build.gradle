@@ -21,7 +21,7 @@ mainClassName = 'com.ismair.cchain.MainKt'
 defaultTasks 'run'
 
 run {
-    args = ["https://securebase.transbase.de:50443/REST/TDB/", "SecureBase2017", "|NrBQF!ntpp'"]
+    args = ["publicKey.pem", "privateKey.pem", "https://securebase.transbase.de:50443/REST/TDB/", "SecureBase2017", "|NrBQF!ntpp'"]
 }
 
 jar {

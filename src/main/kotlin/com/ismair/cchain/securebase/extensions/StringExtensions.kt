@@ -45,7 +45,7 @@ fun String.toPublicKey(): PublicKey {
 
 fun String.toPrivateKey(): PrivateKey {
     val stripped = this
-            .replace("-----BEGIN PRIVATE KEY-----\n", "")
+            .replace("-----BEGIN PRIVATE KEY-----", "")
             .replace("-----END PRIVATE KEY-----", "")
             .replace("\n", "")
     val encoded = Base64.decodeBase64(stripped.toByteArray())

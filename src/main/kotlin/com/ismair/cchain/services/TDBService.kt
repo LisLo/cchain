@@ -1,15 +1,14 @@
 package com.ismair.cchain.services
 
-import com.ismair.cchain.keys.privateKey
-import com.ismair.cchain.keys.publicKeyPKCS8
 import com.ismair.cchain.securebase.TDB
 import com.ismair.cchain.securebase.crypt.SecureBaseRSACipher
 import com.ismair.cchain.securebase.extensions.encodeURIComponent
 import com.ismair.cchain.securebase.extensions.extractObj
 import com.ismair.cchain.securebase.functions.createSecureBaseService
+import java.security.PrivateKey
 import java.util.*
 
-class TDBService(url: String, user: String, password: String) {
+class TDBService(url: String, user: String, password: String, val publicKeyPKCS8: String, val privateKey: PrivateKey) {
     private val tdb = createSecureBaseService(url, user, password, TDB::class.java)
     private var tdbSession: String? = null
     private var tdbExpirationDate: Date? = null
