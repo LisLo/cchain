@@ -15,12 +15,12 @@ import kotlinx.serialization.json.JSON
 import java.io.File
 
 fun main(args : Array<String>) {
-    println("starting C-cash ...")
-
     if (args.size != 5) {
         println("usage: java --jar CCash.jar [PUBLIC_KEY] [PRIVATE_KEY] [URL] [USER] [PASSWORD]")
         return
     }
+
+    println("starting C-cash ...")
 
     val publicKeyPKCS8 = File(args[0]).readText()
     val publicKey = publicKeyPKCS8.toPublicKey()
