@@ -1,10 +1,10 @@
 package com.ismair.cchain.services
 
-import com.ismair.cchain.securebase.TDB
-import com.ismair.cchain.securebase.crypt.SecureBaseRSACipher
-import com.ismair.cchain.securebase.extensions.encodeURIComponent
-import com.ismair.cchain.securebase.extensions.extractObj
-import com.ismair.cchain.securebase.functions.createSecureBaseService
+import de.transbase.cchain.TDB
+import de.transbase.cchain.crypt.SecureBaseRSACipher
+import de.transbase.cchain.extensions.encodeURIComponent
+import de.transbase.cchain.extensions.extractObj
+import de.transbase.cchain.functions.createSecureBaseService
 import java.security.PrivateKey
 import java.util.*
 
