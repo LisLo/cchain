@@ -1,7 +1,7 @@
 package com.ismair.cchain
 
-import com.ismair.cchain.services.TDBService
+import de.transbase.cchain.wrapper.TDBWrapper
 
-abstract class Contract(protected val tdbService: TDBService) {
+abstract class Contract(protected val tdbWrapper: TDBWrapper) {
     abstract fun run()
 }

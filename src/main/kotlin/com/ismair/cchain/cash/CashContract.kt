@@ -1,63 +1,41 @@
 package com.ismair.cchain.cash
 
 import com.ismair.cchain.Contract
-import com.ismair.cchain.cash.model.Booking
 import com.ismair.cchain.cash.model.Confirmation
 import com.ismair.cchain.cash.model.Transfer
-import com.ismair.cchain.services.TDBService
-import kotlinx.serialization.json.JSON
+import de.transbase.cchain.wrapper.TDBWrapper
 
-class CashContract(tdbService: TDBService) : Contract(tdbService) {
+class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     override fun run() {
-        println("starting C-cash ...")
+        println("loading confirmations ...")
 
-        println("loading all sent transactions ...")
+        val processedTransferIds = tdbWrapper.getParsedSentTransactions<Confirmation>().mapNotNull { it.document?.transferId }.toMutableSet()
 
-        val processedTransferIds = mutableSetOf<Int>()
-        tdbService.getSentTransactions().forEach {
-            if (it.document != null) {
-                try {
-                    val confirmation = JSON.parse<Confirmation>(it.document)
-                    processedTransferIds.add(confirmation.transferId)
-                } catch (e: Exception) {
-                    println("could not parse transaction with id = ${it.id}")
-                }
-            }
-        }
-
-        println("${processedTransferIds.size} transfers already processed")
+        println("${processedTransferIds.size} confirmations found")
 
         while (true) {
             try {
-                println("loading all received transactions and calculating open transfers ...")
+                println("loading open transfers ...")
 
-                val openBookings = mutableListOf<Booking>()
-                tdbService.getReceivedTransactions().forEach {
-                    if (!processedTransferIds.contains(it.id) && it.document != null) {
-                        try {
-                            val transfer = JSON.parse<Transfer>(it.document)
-                            openBookings.add(Booking(it.id, it.chain, it.sender, transfer.receiver, transfer.amount, transfer.purpose))
-                        } catch (e: Exception) {
-                            println("could not parse transaction with id = ${it.id}")
-                        }
-                    }
-                }
+                val openTransfers = tdbWrapper.getParsedReceivedTransactions<Transfer>().filter { !processedTransferIds.contains(it.id) }
 
-                println("processing ${openBookings.size} open bookings ...")
+                println("processing ${openTransfers.size} open transfers ...")
 
-                openBookings.forEach {
-                    println("processing transfer of ${it.amount} cEuro with purpose ${it.purpose}")
+                openTransfers.forEach {
+                    val transfer = it.document
+                    if (transfer != null) {
+                        println("processing transfer of ${transfer.amount} cEuro with purpose ${transfer.purpose}")
 
-                    try {
-                        val confirmation1 = Confirmation(it.transferId, it.receiver, -it.amount, it.purpose)
-                        tdbService.createNewTransaction(it.chain, it.sender, JSON.stringify(confirmation1), true)
+                        val confirmation1 = Confirmation(it.id, transfer.receiver, -transfer.amount, transfer.purpose)
+                        tdbWrapper.createNewTransaction(it.chain, it.sender, confirmation1, true)
 
-                        val confirmation2 = Confirmation(it.transferId, it.sender, it.amount, it.purpose)
-                        tdbService.createNewTransaction(it.chain, it.receiver, JSON.stringify(confirmation2), true)
+                        val confirmation2 = Confirmation(it.id, it.sender, transfer.amount, transfer.purpose)
+                        tdbWrapper.createNewTransaction(it.chain, transfer.receiver, confirmation2, true)
 
-                        processedTransferIds.add(it.transferId)
-                    } catch (e: Exception) {
-                        println("an exception was thrown (${e.message}), skipping this booking ...")
+                        processedTransferIds.add(it.id)
+                    } else {
+                        println("could not decrypt or parse transaction with id = ${it.id}, skipping this transaction ...")
+                        processedTransferIds.add(it.id)
                     }
                 }
             } catch (e: Exception) {

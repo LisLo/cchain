@@ -1,13 +1,13 @@
 package com.ismair.cchain
 
 import com.ismair.cchain.cash.CashContract
-import com.ismair.cchain.services.TDBService
 import com.ismair.cchain.settle.SettleContract
 import com.ismair.cchain.trade.TradeContract
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.mainBody
 import de.transbase.cchain.extensions.toPrivateKey
 import de.transbase.cchain.extensions.toPublicKey
+import de.transbase.cchain.wrapper.TDBWrapper
 import java.io.File
 
 fun main(args: Array<String>) = mainBody {
@@ -18,7 +18,7 @@ fun main(args: Array<String>) = mainBody {
         val publicKey = publicKeyPKCS8.toPublicKey()
         val privateKeyPKCS8 = File(priv).readText()
         val privateKey = privateKeyPKCS8.toPrivateKey()
-        val tdbService = TDBService(publicKey, publicKeyPKCS8, privateKey, url, user, pass)
+        val tdbService = TDBWrapper(publicKey, publicKeyPKCS8, privateKey, url, user, pass)
 
         when (type) {
             ContractType.CASH -> CashContract(tdbService)
