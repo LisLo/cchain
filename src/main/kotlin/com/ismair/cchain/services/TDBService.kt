@@ -8,8 +8,14 @@ import de.transbase.cchain.functions.createSecureBaseService
 import java.security.PrivateKey
 import java.util.*
 
-class TDBService(url: String, user: String, password: String, val publicKeyPKCS8: String, val privateKey: PrivateKey) {
-    private val tdb = createSecureBaseService(url, user, password, TDB::class.java)
+class TDBService(
+        private val publicKeyPKCS8: String,
+        private val privateKey: PrivateKey,
+        url: String,
+        username: String,
+        password: String
+) {
+    private val tdb = createSecureBaseService(url, username, password, TDB::class.java)
     private var tdbSession: String? = null
     private var tdbExpirationDate: Date? = null
 

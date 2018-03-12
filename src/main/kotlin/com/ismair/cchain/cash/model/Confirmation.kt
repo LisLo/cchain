@@ -1,4 +1,4 @@
-package com.ismair.cchain.model
+package com.ismair.cchain.cash.model
 
 import kotlinx.serialization.Serializable
 

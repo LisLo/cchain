@@ -1,6 +1,7 @@
 buildscript {
     ext.kotlin_version = '1.2.30'
     ext.serialization_version = '0.4.1'
+    ext.kotlin_argparser_version = '2.0.4'
 
     repositories {
         mavenCentral()
@@ -22,7 +23,7 @@ mainClassName = 'com.ismair.cchain.MainKt'
 defaultTasks 'run'
 
 run {
-    args = ["publicKey.pem", "privateKey.pem", "https://securebase.transbase.de:50443/REST/TDB/", "SecureBase2017", "|NrBQF!ntpp'"]
+    args = ["--cash", "--pub=cashPublicKey.pem", "--priv=cashPrivateKey.pem", "--url=https://securebase.transbase.de:50443/REST/TDB/", "--user=SecureBase2017", "--pass=|NrBQF!ntpp'"]
 }
 
 jar {
@@ -35,6 +36,7 @@ jar {
 
 repositories {
     mavenCentral()
+    jcenter()
     maven { url "https://kotlin.bintray.com/kotlinx" }
     maven { url "https://mymavenrepo.com/repo/65rMXEyG6YW0HOHhitxq/" }
 }
@@ -44,6 +46,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version"
     compile 'de.transbase.cchain:cchain-core:1.0'
+    compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
 }
 
 task wrapper(type: Wrapper) {
