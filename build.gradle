@@ -2,6 +2,7 @@ buildscript {
     ext.kotlin_version = '1.2.30'
     ext.serialization_version = '0.4.1'
     ext.kotlin_argparser_version = '2.0.4'
+    ext.cchain_core_version = '1.1.1'
 
     repositories {
         mavenCentral()
@@ -45,7 +46,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version"
-    compile 'de.transbase.cchain:cchain-core:1.1'
+    compile "de.transbase.cchain:cchain-core:$cchain_core_version"
     compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
 }
 
