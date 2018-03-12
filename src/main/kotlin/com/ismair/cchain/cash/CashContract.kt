@@ -9,7 +9,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     override fun run() {
         println("loading confirmations ...")
 
-        val processedTransferIds = tdbWrapper.getParsedSentTransactions<Confirmation>().mapNotNull { it.document?.transferId }.toMutableSet()
+        val processedTransferIds = tdbWrapper.getParsedSentTransactions<Confirmation>().map { it.document.transferId }.toMutableSet()
 
         println("${processedTransferIds.size} confirmations found")
 
@@ -23,20 +23,16 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
 
                 openTransfers.forEach {
                     val transfer = it.document
-                    if (transfer != null) {
-                        println("processing transfer of ${transfer.amount} cEuro with purpose ${transfer.purpose}")
 
-                        val confirmation1 = Confirmation(it.id, transfer.receiver, -transfer.amount, transfer.purpose)
-                        tdbWrapper.createNewTransaction(it.chain, it.sender, confirmation1, true)
+                    println("processing transfer of ${transfer.amount} cEuro with purpose ${transfer.purpose}")
 
-                        val confirmation2 = Confirmation(it.id, it.sender, transfer.amount, transfer.purpose)
-                        tdbWrapper.createNewTransaction(it.chain, transfer.receiver, confirmation2, true)
+                    val confirmation1 = Confirmation(it.id, transfer.receiver, -transfer.amount, transfer.purpose)
+                    tdbWrapper.createNewTransaction(it.chain, it.sender, confirmation1, true)
 
-                        processedTransferIds.add(it.id)
-                    } else {
-                        println("could not decrypt or parse transaction with id = ${it.id}, skipping this transaction ...")
-                        processedTransferIds.add(it.id)
-                    }
+                    val confirmation2 = Confirmation(it.id, it.sender, transfer.amount, transfer.purpose)
+                    tdbWrapper.createNewTransaction(it.chain, transfer.receiver, confirmation2, true)
+
+                    processedTransferIds.add(it.id)
                 }
             } catch (e: Exception) {
                 println("an exception was thrown (${e.message}), restarting contract ...")
