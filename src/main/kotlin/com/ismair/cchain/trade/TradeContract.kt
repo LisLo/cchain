@@ -34,11 +34,39 @@ class TradeContract(tdbWrapper: TDBWrapper, private val daxMap: Map<String, Stri
                             tradeOrder.timeLimit.before(Date())) {
                         println("trade order with id = ${it.id} is not valid, rejecting it ...")
 
-                        val tradeExecution = TradeExecution(TradeExecution.Type.REJECTION, it.id, tradeOrder)
-                        tdbWrapper.createNewTransaction(it.chain, it.sender, tradeExecution, true)
+                        val rejection = TradeExecution(TradeExecution.Type.REJECTION, it.id, tradeOrder)
+                        tdbWrapper.createNewTransaction(it.chain, it.sender, rejection, true)
                         null
                     } else {
                         it
+                    }
+                }
+
+                println("search matching trade orders ...")
+
+                validTradeOrders.filter { it.document.type == TradeOrder.Type.BUY }.forEach {
+                    val buyTradeOrder = it.document
+                    val sellTradeOrder = validTradeOrders.firstOrNull {
+                        val sellTradeOrder = it.document
+                        sellTradeOrder.type == TradeOrder.Type.SELL &&
+                                sellTradeOrder.isin == buyTradeOrder.isin &&
+                                sellTradeOrder.shareCount == buyTradeOrder.shareCount &&
+                                sellTradeOrder.priceLimit <= buyTradeOrder.priceLimit
+                    }?.document
+
+                    if (sellTradeOrder != null) {
+                        println("found matching trades")
+
+                        val isin = buyTradeOrder.isin
+                        val shareCount = buyTradeOrder.shareCount
+                        val price = (buyTradeOrder.priceLimit + sellTradeOrder.priceLimit) / 2
+                        val date = Date()
+
+                        val confirmation1 = TradeExecution(TradeExecution.Type.CONFIRMATION, 0, buyTradeOrder.name, isin, shareCount, price, date)
+                        tdbWrapper.createNewTransaction("C-trade", "", confirmation1, true)
+
+                        val confirmation2 = TradeExecution(TradeExecution.Type.CONFIRMATION, 0, sellTradeOrder.name, isin, shareCount, price, date)
+                        tdbWrapper.createNewTransaction("C-trade", "", confirmation2, true)
                     }
                 }
             } catch (e: Exception) {
