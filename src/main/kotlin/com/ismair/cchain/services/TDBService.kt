@@ -1,14 +1,20 @@
 package com.ismair.cchain.services
 
 import de.transbase.cchain.TDB
+import de.transbase.cchain.crypt.SecureBaseAESCipher
 import de.transbase.cchain.crypt.SecureBaseRSACipher
+import de.transbase.cchain.extensions.decodeBase64
 import de.transbase.cchain.extensions.encodeURIComponent
+import de.transbase.cchain.extensions.extractList
 import de.transbase.cchain.extensions.extractObj
 import de.transbase.cchain.functions.createSecureBaseService
+import de.transbase.cchain.functions.prepareTransaction
 import java.security.PrivateKey
+import java.security.PublicKey
 import java.util.*
 
 class TDBService(
+        private val publicKey: PublicKey,
         private val publicKeyPKCS8: String,
         private val privateKey: PrivateKey,
         url: String,
@@ -50,12 +56,77 @@ class TDBService(
             return session
         }
 
-    fun getTransactionsBySender(sender: String) =
-            tdb.getTransactions(session, "", sender, "")
+    private val originalDocuments = mutableMapOf<Int, String>()
+    private val meShrinked = shrink(publicKeyPKCS8)
 
-    fun getTransactionsByReceiver(receiver: String) =
-            tdb.getTransactions(session, "", "", receiver)
+    private fun shrink(publicKey: String) =
+            publicKey.replace("\n", "").replace("\r", "").replace(" ", "")
 
-    fun createNewTransaction(transaction: TDB.Transaction) =
-            tdb.createNewTransaction(session, transaction)
+    private fun isMe(publicKey: String) = shrink(publicKey) == meShrinked
+
+    data class DecryptedTransaction(
+            val chain: String,
+            val id: Int,
+            val sender: String,
+            val receiver: String,
+            val document: String?
+    )
+
+    private fun decrypt(content: List<TDB.TransactionInfosContent>) =
+            content.flatMap { chain ->
+                if (chain.count > 0) {
+                    chain.transactions.map {
+                        val document = if (originalDocuments.containsKey(it.tid)) {
+                            originalDocuments[it.tid]
+                        } else {
+                            val isSender = isMe(it.sender)
+                            val isReceiver = isMe(it.receiver)
+
+                            if (it.cryptKey.isNullOrEmpty()) {
+                                it.document.decodeBase64()
+                            } else if (isSender || isReceiver) {
+                                try {
+                                    val key = if (isSender) it.cryptKeySender else it.cryptKey
+                                    if (key != null) {
+                                        val encryption = SecureBaseAESCipher.decrypt(SecureBaseRSACipher.decrypt(privateKey, key), it.document)
+                                        originalDocuments[it.tid] = encryption
+                                        encryption
+                                    } else {
+                                        null
+                                    }
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            } else {
+                                null
+                            }
+                        }
+
+                        DecryptedTransaction(chain.chain, it.tid, it.sender, it.receiver, document)
+                    }
+                } else {
+                    listOf()
+                }
+            }
+
+    fun getTransactionsByChain(chain: String) =
+            decrypt(tdb.getTransactions(session, chain, "", "").execute().extractList())
+
+    fun getSentTransactions() =
+            decrypt(tdb.getTransactions(session, "", publicKeyPKCS8.encodeURIComponent(), "").execute().extractList())
+
+    fun getReceivedTransactions() =
+            decrypt(tdb.getTransactions(session, "", "", publicKeyPKCS8.encodeURIComponent()).execute().extractList())
+
+    fun createChainIfNotExists(name: String, description: String) {
+        if (!tdb.getChains(session).execute().extractList().any { it.chain == name }) {
+            tdb.createNewChain(session, TDB.Chain(name, description)).execute()
+        }
+    }
+
+    fun createNewTransaction(chain: String, receiver: String, message: String, encrypted: Boolean) {
+        createChainIfNotExists(chain, "created automatically")
+        val transaction = prepareTransaction(chain, publicKey, privateKey, publicKeyPKCS8, receiver, message, encrypted)
+        tdb.createNewTransaction(session, transaction).execute()
+    }
 }
