@@ -22,7 +22,7 @@ fun main(args: Array<String>) = mainBody {
 
         when (type) {
             ContractType.CASH -> CashContract(tdbService)
-            ContractType.TRADE -> TradeContract(tdbService)
+            ContractType.TRADE -> TradeContract(tdbService, daxMap)
             ContractType.SETTLE -> SettleContract(tdbService)
         }.run()
     }

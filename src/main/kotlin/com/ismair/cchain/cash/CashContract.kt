@@ -39,7 +39,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                     }
                 }
             } catch (e: Exception) {
-                println("an exception was thrown (${e.message}), restarting application ...")
+                println("an exception was thrown (${e.message}), restarting contract ...")
             }
         }
     }

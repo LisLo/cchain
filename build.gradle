@@ -24,7 +24,8 @@ mainClassName = 'com.ismair.cchain.MainKt'
 defaultTasks 'run'
 
 run {
-    args = ["--cash", "--pub=cashPublicKey.pem", "--priv=cashPrivateKey.pem", "--url=https://securebase.transbase.de:50443/REST/TDB/", "--user=SecureBase2017", "--pass=|NrBQF!ntpp'"]
+    //args = ["--cash", "--pub=keys/cash/publicKey.pem", "--priv=keys/cash/privateKey.pem", "--url=https://securebase.transbase.de:50443/REST/TDB/", "--user=SecureBase2017", "--pass=|NrBQF!ntpp'"]
+    args = ["--trade", "--pub=keys/trade/publicKey.pem", "--priv=keys/trade/privateKey.pem", "--url=https://securebase.transbase.de:50443/REST/TDB/", "--user=SecureBase2017", "--pass=|NrBQF!ntpp'"]
 }
 
 jar {
