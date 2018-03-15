@@ -6,7 +6,6 @@ import com.ismair.cchain.trade.extensions.forEachNonEqualPair
 import com.ismair.cchain.trade.model.TradeConfirmation
 import com.ismair.cchain.trade.model.TradeRejection
 import com.ismair.cchain.trade.model.TradeRequest
-import com.ismair.cchain.trade.model.TradeRequestMode
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
 import java.util.*
@@ -19,13 +18,13 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
         val responses = tdbWrapper.getParsedSentTransactions(listOf(TradeConfirmation::class, TradeRejection::class))
         val processedRequestIds = responses.map { it.document.requestId }.toMutableSet()
         val properties = responses
-                .filter { it.document is TradeConfirmation }
-                .groupBy { Pair(it.document.request.name, it.document.request.isin) }
+                .mapNotNull { it.document as? TradeConfirmation }
+                .groupBy { Pair(it.request.name, it.request.isin) }
                 .toList()
                 .associate {
                     it.first to it.second.sumBy {
-                        val request = it.document.request
-                        if (request.mode == TradeRequestMode.BUY) request.shareCount else -request.shareCount
+                        val shareCount = it.request.shareCount
+                        if (it.request.mode == TradeRequest.Mode.BUY) shareCount else -shareCount
                     }
                 }
 
@@ -35,7 +34,9 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
             try {
                 println("loading open requests ...")
 
-                val openRequests = tdbWrapper.getParsedReceivedTransactions<TradeRequest>().filter { !processedRequestIds.contains(it.id) }
+                val openRequests = tdbWrapper
+                        .getParsedReceivedTransactions<TradeRequest>()
+                        .filter { !processedRequestIds.contains(it.id) }
 
                 println("verifying ${openRequests.size} open requests ...")
 
@@ -51,7 +52,7 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                         request.priceLimit <= 0 -> "price limit has to be greater than zero"
                         dateLimitParsed == null -> "date limit could not be parsed"
                         dateLimitParsed.before(Date()) -> "request is expired"
-                        request.mode == TradeRequestMode.SELL && (property == null || property < request.shareCount) -> "selling shares without property"
+                        request.mode == TradeRequest.Mode.SELL && (property == null || property < request.shareCount) -> "selling shares without property"
                         else -> null
                     }
 
@@ -78,8 +79,8 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
 
                     if (!matchedRequestIds.contains(id1) &&
                             !matchedRequestIds.contains(id2) &&
-                            request1.mode == TradeRequestMode.BUY &&
-                            request2.mode == TradeRequestMode.SELL &&
+                            request1.mode == TradeRequest.Mode.BUY &&
+                            request2.mode == TradeRequest.Mode.SELL &&
                             request1.isin == request2.isin &&
                             request1.shareCount == request2.shareCount &&
                             request1.priceLimit >= request2.priceLimit) {

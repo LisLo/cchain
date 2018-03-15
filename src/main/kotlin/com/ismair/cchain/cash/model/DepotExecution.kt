@@ -1,11 +1,10 @@
-package com.ismair.cchain.trade.model
+package com.ismair.cchain.cash.model
 
 import com.ismair.cchain.ContractResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TradeRejection(
+data class DepotExecution(
         override val requestId: Int,
-        val request: TradeRequest,
-        val message: String
+        val request: DepotRequest
 ) : ContractResponse

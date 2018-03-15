@@ -1,10 +1,10 @@
-package com.ismair.cchain.trade.model
+package com.ismair.cchain.cash.model
 
 import com.ismair.cchain.ContractRequest
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class TradeRequest(
+data class DepotRequest(
         val mode: Mode,
         val name: String,
         val isin: String,

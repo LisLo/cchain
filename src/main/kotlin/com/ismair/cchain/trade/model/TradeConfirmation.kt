@@ -1,10 +1,11 @@
 package com.ismair.cchain.trade.model
 
+import com.ismair.cchain.ContractResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class TradeConfirmation(
         override val requestId: Int,
-        override val request: TradeRequest,
+        val request: TradeRequest,
         val price: Int
-) : TradeResponse
+) : ContractResponse

@@ -1,38 +1,47 @@
 package com.ismair.cchain.cash
 
 import com.ismair.cchain.Contract
-import com.ismair.cchain.cash.model.Confirmation
-import com.ismair.cchain.cash.model.Transfer
+import com.ismair.cchain.cash.model.DepotRequest
+import com.ismair.cchain.cash.model.TransferConfirmation
+import com.ismair.cchain.cash.model.TransferRejection
+import com.ismair.cchain.cash.model.TransferRequest
 import de.transbase.cchain.wrapper.TDBWrapper
 
 class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     override fun run() {
-        println("loading confirmations ...")
+        println("loading responses ...")
 
-        val processedTransferIds = tdbWrapper.getParsedSentTransactions<Confirmation>().map { it.document.transferId }.toMutableSet()
+        val responses = tdbWrapper.getParsedSentTransactions(listOf(TransferConfirmation::class, TransferRejection::class))
+        val processedRequestIds = responses.map { it.document.requestId }.toMutableSet()
 
-        println("${processedTransferIds.size} confirmations found")
+        println("${processedRequestIds.size} responses found")
 
         while (true) {
             try {
-                println("loading open transfers ...")
+                println("loading open requests ...")
 
-                val openTransfers = tdbWrapper.getParsedReceivedTransactions<Transfer>().filter { !processedTransferIds.contains(it.id) }
+                val openRequests = tdbWrapper
+                        .getParsedReceivedTransactions(listOf(TransferRequest::class, DepotRequest::class))
+                        .filter { !processedRequestIds.contains(it.id) }
 
-                println("processing ${openTransfers.size} open transfers ...")
+                println("processing ${openRequests.size} open requests ...")
 
-                openTransfers.forEach {
-                    val transfer = it.document
+                openRequests.forEach {
+                    val request = it.document
 
-                    println("processing transfer of ${transfer.amount} cEuro with purpose ${transfer.purpose}")
+                    if (request is TransferRequest) {
+                        println("processing transfer request of ${request.amount} cEuro with purpose '${request.purpose}'")
 
-                    val confirmation1 = Confirmation(it.id, transfer.receiver, -transfer.amount, transfer.purpose)
-                    tdbWrapper.createNewTransaction(it.chain, it.sender, confirmation1, true)
+                        val confirmation1 = TransferConfirmation(it.id, request, TransferConfirmation.Mode.DEBIT)
+                        tdbWrapper.createNewTransaction(it.chain, it.sender, confirmation1, true)
 
-                    val confirmation2 = Confirmation(it.id, it.sender, transfer.amount, transfer.purpose)
-                    tdbWrapper.createNewTransaction(it.chain, transfer.receiver, confirmation2, true)
+                        val confirmation2 = TransferConfirmation(it.id, request, TransferConfirmation.Mode.CREDIT)
+                        tdbWrapper.createNewTransaction(it.chain, request.user, confirmation2, true)
 
-                    processedTransferIds.add(it.id)
+                        processedRequestIds.add(it.id)
+                    } else if (request is DepotRequest) {
+                        println("processing depot request of ${request.shareCount} shares of '${request.isin}' with price limit ${request.priceLimit} cEuro")
+                    }
                 }
             } catch (e: Exception) {
                 println("an exception was thrown (${e.message}), restarting contract ...")
