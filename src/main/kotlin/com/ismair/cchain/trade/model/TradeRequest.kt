@@ -1,11 +1,10 @@
 package com.ismair.cchain.trade.model
 
 import kotlinx.serialization.Serializable
-import java.util.*
 
 @Serializable
-data class TradeOrder(
-        val orderType: TradeOrderType,
+data class TradeRequest(
+        val mode: TradeRequestMode,
         val name: String,
         val isin: String,
         val shareCount: Int,

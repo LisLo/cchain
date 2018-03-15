@@ -3,101 +3,101 @@ package com.ismair.cchain.trade
 import com.ismair.cchain.Contract
 import com.ismair.cchain.trade.data.daxMap
 import com.ismair.cchain.trade.extensions.forEachNonEqualPair
-import com.ismair.cchain.trade.model.TradeExecution
-import com.ismair.cchain.trade.model.TradeExecutionType
-import com.ismair.cchain.trade.model.TradeOrder
-import com.ismair.cchain.trade.model.TradeOrderType
+import com.ismair.cchain.trade.model.TradeConfirmation
+import com.ismair.cchain.trade.model.TradeRejection
+import com.ismair.cchain.trade.model.TradeRequest
+import com.ismair.cchain.trade.model.TradeRequestMode
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
 import java.util.*
 
 class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     override fun run() {
-        println("loading executions ...")
+        println("loading responses ...")
 
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
-        val executions = tdbWrapper.getParsedSentTransactions<TradeExecution>()
-        val processedOrderIds = executions.map { it.document.orderId }.toMutableSet()
-        val properties = executions
-                .filter { it.document.executionType == TradeExecutionType.CONFIRMATION }
-                .groupBy { Pair(it.document.name, it.document.isin) }
+        val responses = tdbWrapper.getParsedSentTransactions(listOf(TradeConfirmation::class, TradeRejection::class))
+        val processedRequestIds = responses.map { it.document.requestId }.toMutableSet()
+        val properties = responses
+                .filter { it.document is TradeConfirmation }
+                .groupBy { Pair(it.document.request.name, it.document.request.isin) }
                 .toList()
                 .associate {
                     it.first to it.second.sumBy {
-                        val doc = it.document
-                        if (doc.orderType == TradeOrderType.BUY) doc.shareCount else -doc.shareCount
+                        val request = it.document.request
+                        if (request.mode == TradeRequestMode.BUY) request.shareCount else -request.shareCount
                     }
                 }
 
-        println("${processedOrderIds.size} executions found")
+        println("${processedRequestIds.size} responses found")
 
         while (true) {
             try {
-                println("loading open orders ...")
+                println("loading open requests ...")
 
-                val openOrders = tdbWrapper.getParsedReceivedTransactions<TradeOrder>().filter { !processedOrderIds.contains(it.id) }
+                val openRequests = tdbWrapper.getParsedReceivedTransactions<TradeRequest>().filter { !processedRequestIds.contains(it.id) }
 
-                println("verifying ${openOrders.size} open orders ...")
+                println("verifying ${openRequests.size} open requests ...")
 
-                val validOrders = openOrders.mapNotNull {
-                    val order = it.document
-                    val property = properties[Pair(order.name, order.isin)]
-                    val dateLimitParsed = try { sdf.parse(order.dateLimit) } catch (e: Exception) { null }
+                val validRequests = openRequests.mapNotNull {
+                    val request = it.document
+                    val property = properties[Pair(request.name, request.isin)]
+                    val dateLimitParsed = try { sdf.parse(request.dateLimit) } catch (e: Exception) { null }
 
                     val message = when {
-                        order.name.isEmpty() -> "name is required"
-                        !daxMap.containsKey(order.isin) -> "isin is not valid"
-                        order.shareCount <= 0 -> "share count has to be greater than zero"
-                        order.priceLimit <= 0 -> "price limit has to be greater than zero"
+                        request.name.isEmpty() -> "name is required"
+                        !daxMap.containsKey(request.isin) -> "isin is not valid"
+                        request.shareCount <= 0 -> "share count has to be greater than zero"
+                        request.priceLimit <= 0 -> "price limit has to be greater than zero"
                         dateLimitParsed == null -> "date limit could not be parsed"
-                        dateLimitParsed.before(Date()) -> "order is expired"
-                        order.orderType == TradeOrderType.SELL && (property == null || property < order.shareCount) -> "selling shares without property"
+                        dateLimitParsed.before(Date()) -> "request is expired"
+                        request.mode == TradeRequestMode.SELL && (property == null || property < request.shareCount) -> "selling shares without property"
                         else -> null
                     }
 
                     if (message != null) {
-                        println("rejecting order with id = ${it.id} with reason '$message' ...")
+                        println("rejecting request with id = ${it.id} with reason '$message' ...")
 
-                        val rejection = TradeExecution.createRejection(it.id, order, sdf.format(Date()), message)
+                        val rejection = TradeRejection(it.id, request, message)
                         tdbWrapper.createNewTransaction(it.chain, it.sender, rejection, true)
+                        processedRequestIds.add(it.id)
                         null
                     } else {
                         it
                     }
                 }
 
-                println("search matching orders ...")
+                println("search matching requests ...")
 
-                val matchedOrderIds = mutableSetOf<Int>()
-                validOrders.forEachNonEqualPair { transaction1, transaction2 ->
+                val matchedRequestIds = mutableSetOf<Int>()
+                validRequests.forEachNonEqualPair { transaction1, transaction2 ->
                     val id1 = transaction1.id
                     val id2 = transaction2.id
-                    val order1 = transaction1.document
-                    val order2 = transaction2.document
+                    val request1 = transaction1.document
+                    val request2 = transaction2.document
 
-                    if (!matchedOrderIds.contains(id1) &&
-                            !matchedOrderIds.contains(id2) &&
-                            order1.orderType == TradeOrderType.BUY &&
-                            order2.orderType == TradeOrderType.SELL &&
-                            order1.isin == order2.isin &&
-                            order1.shareCount == order2.shareCount &&
-                            order1.priceLimit >= order2.priceLimit) {
-                        val price = (order1.priceLimit + order2.priceLimit) / 2
-                        val date = sdf.format(Date())
+                    if (!matchedRequestIds.contains(id1) &&
+                            !matchedRequestIds.contains(id2) &&
+                            request1.mode == TradeRequestMode.BUY &&
+                            request2.mode == TradeRequestMode.SELL &&
+                            request1.isin == request2.isin &&
+                            request1.shareCount == request2.shareCount &&
+                            request1.priceLimit >= request2.priceLimit) {
+                        val price = (request1.priceLimit + request2.priceLimit) / 2
 
-                        println("confirming trades for ${order1.shareCount} shares of ${order1.isin} at price $price ...")
+                        println("confirming trades for ${request1.shareCount} shares of ${request1.isin} at price $price ...")
 
-                        val confirmation1 = TradeExecution.createConfirmation(id1, order1, price, date)
+                        val confirmation1 = TradeConfirmation(id1, request1, price)
                         tdbWrapper.createNewTransaction("C-trade", transaction1.sender, confirmation1, true)
-                        matchedOrderIds.add(id1)
+                        matchedRequestIds.add(id1)
 
-                        val confirmation2 = TradeExecution.createConfirmation(id2, order2, price, date)
+                        val confirmation2 = TradeConfirmation(id2, request2, price)
                         tdbWrapper.createNewTransaction("C-trade", transaction2.sender, confirmation2, true)
-                        matchedOrderIds.add(id2)
+                        matchedRequestIds.add(id2)
                     }
                 }
 
-                processedOrderIds.addAll(matchedOrderIds)
+                processedRequestIds.addAll(matchedRequestIds)
             } catch (e: Exception) {
                 println("an exception was thrown (${e.message}), restarting contract ...")
             }
