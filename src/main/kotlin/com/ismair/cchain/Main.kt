@@ -1,7 +1,6 @@
 package com.ismair.cchain
 
 import com.ismair.cchain.cash.CashContract
-import com.ismair.cchain.settle.SettleContract
 import com.ismair.cchain.trade.TradeContract
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.mainBody
@@ -22,8 +21,7 @@ fun main(args: Array<String>) = mainBody {
 
         when (type) {
             ContractType.CASH -> CashContract(tdbService)
-            ContractType.TRADE -> TradeContract(tdbService, daxMap)
-            ContractType.SETTLE -> SettleContract(tdbService)
+            ContractType.TRADE -> TradeContract(tdbService)
         }.run()
     }
 }

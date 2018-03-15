@@ -6,7 +6,6 @@ class ArgumentClass(parser: ArgParser) {
     val type by parser.mapping(
             "--cash" to ContractType.CASH,
             "--trade" to ContractType.TRADE,
-            "--settle" to ContractType.SETTLE,
             help = "contract type")
     val pub by parser.storing("path to a base64 encoded pem file containing the public key")
     val priv by parser.storing("path to a base64 encoded pem file containing the private key")

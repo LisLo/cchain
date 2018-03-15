@@ -6,7 +6,7 @@ import com.ismair.cchain.trade.model.TradeOrder
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.util.*
 
-class TradeContract(tdbWrapper: TDBWrapper, private val daxMap: Map<String, String>) : Contract(tdbWrapper) {
+class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     override fun run() {
         println("loading executions ...")
 
