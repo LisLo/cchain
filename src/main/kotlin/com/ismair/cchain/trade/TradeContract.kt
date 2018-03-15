@@ -4,18 +4,22 @@ import com.ismair.cchain.Contract
 import com.ismair.cchain.trade.data.daxMap
 import com.ismair.cchain.trade.extensions.forEachNonEqualPair
 import com.ismair.cchain.trade.model.TradeExecution
+import com.ismair.cchain.trade.model.TradeExecutionType
 import com.ismair.cchain.trade.model.TradeOrder
 import com.ismair.cchain.trade.model.TradeOrderType
 import de.transbase.cchain.wrapper.TDBWrapper
+import java.text.SimpleDateFormat
 import java.util.*
 
 class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     override fun run() {
         println("loading executions ...")
 
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)
         val executions = tdbWrapper.getParsedSentTransactions<TradeExecution>()
         val processedOrderIds = executions.map { it.document.orderId }.toMutableSet()
         val properties = executions
+                .filter { it.document.executionType == TradeExecutionType.CONFIRMATION }
                 .groupBy { Pair(it.document.name, it.document.isin) }
                 .toList()
                 .associate {
@@ -38,13 +42,15 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                 val validOrders = openOrders.mapNotNull {
                     val order = it.document
                     val property = properties[Pair(order.name, order.isin)]
+                    val dateLimitParsed = try { sdf.parse(order.dateLimit) } catch (e: Exception) { null }
 
                     val message = when {
                         order.name.isEmpty() -> "name is required"
                         !daxMap.containsKey(order.isin) -> "isin is not valid"
                         order.shareCount <= 0 -> "share count has to be greater than zero"
                         order.priceLimit <= 0 -> "price limit has to be greater than zero"
-                        order.timeLimit.before(Date()) -> "order is expired"
+                        dateLimitParsed == null -> "date limit could not be parsed"
+                        dateLimitParsed.before(Date()) -> "order is expired"
                         order.orderType == TradeOrderType.SELL && (property == null || property < order.shareCount) -> "selling shares without property"
                         else -> null
                     }
@@ -52,7 +58,7 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                     if (message != null) {
                         println("rejecting order with id = ${it.id} with reason '$message' ...")
 
-                        val rejection = TradeExecution.createRejection(it.id, order, message)
+                        val rejection = TradeExecution.createRejection(it.id, order, sdf.format(Date()), message)
                         tdbWrapper.createNewTransaction(it.chain, it.sender, rejection, true)
                         null
                     } else {
@@ -77,7 +83,7 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                             order1.shareCount == order2.shareCount &&
                             order1.priceLimit >= order2.priceLimit) {
                         val price = (order1.priceLimit + order2.priceLimit) / 2
-                        val date = Date()
+                        val date = sdf.format(Date())
 
                         println("confirming trades for ${order1.shareCount} shares of ${order1.isin} at price $price ...")
 

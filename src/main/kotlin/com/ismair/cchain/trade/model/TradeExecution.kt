@@ -12,11 +12,11 @@ data class TradeExecution(
         val isin: String,
         val shareCount: Int,
         val price: Int,
-        val time: Date,
+        val date: String,
         val message: String?
 ) {
     companion object {
-        fun createRejection(orderId: Int, order: TradeOrder, message: String) = TradeExecution(
+        fun createRejection(orderId: Int, order: TradeOrder, date: String, message: String) = TradeExecution(
                 TradeExecutionType.REJECTION,
                 orderId,
                 order.orderType,
@@ -24,11 +24,11 @@ data class TradeExecution(
                 order.isin,
                 order.shareCount,
                 order.priceLimit,
-                order.timeLimit,
+                date,
                 message
         )
 
-        fun createConfirmation(orderId: Int, order: TradeOrder, price: Int, time: Date) = TradeExecution(
+        fun createConfirmation(orderId: Int, order: TradeOrder, price: Int, date: String) = TradeExecution(
                 TradeExecutionType.CONFIRMATION,
                 orderId,
                 order.orderType,
@@ -36,7 +36,7 @@ data class TradeExecution(
                 order.isin,
                 order.shareCount,
                 price,
-                time,
+                date,
                 null
         )
     }

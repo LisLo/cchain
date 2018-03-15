@@ -10,5 +10,5 @@ data class TradeOrder(
         val isin: String,
         val shareCount: Int,
         val priceLimit: Int,
-        val timeLimit: Date
+        val dateLimit: String
 )

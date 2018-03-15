@@ -47,8 +47,8 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:$serialization_version"
-    compile "de.transbase.cchain:cchain-core:$cchain_core_version"
     compile "com.xenomachina:kotlin-argparser:$kotlin_argparser_version"
+    compile "de.transbase.cchain:cchain-core:$cchain_core_version"
 }
 
 task wrapper(type: Wrapper) {
