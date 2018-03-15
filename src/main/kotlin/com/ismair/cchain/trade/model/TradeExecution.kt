@@ -13,17 +13,31 @@ data class TradeExecution(
         val shareCount: Int,
         val price: Int,
         val time: Date,
-        val message: String
+        val message: String?
 ) {
-    constructor(executionType: TradeExecutionType, orderId: Int, order: TradeOrder, message: String) : this(
-            executionType,
-            orderId,
-            order.orderType,
-            order.name,
-            order.isin,
-            order.shareCount,
-            order.priceLimit,
-            order.timeLimit,
-            message
-    )
+    companion object {
+        fun createRejection(orderId: Int, order: TradeOrder, message: String) = TradeExecution(
+                TradeExecutionType.REJECTION,
+                orderId,
+                order.orderType,
+                order.name,
+                order.isin,
+                order.shareCount,
+                order.priceLimit,
+                order.timeLimit,
+                message
+        )
+
+        fun createConfirmation(orderId: Int, order: TradeOrder, price: Int, time: Date) = TradeExecution(
+                TradeExecutionType.CONFIRMATION,
+                orderId,
+                order.orderType,
+                order.name,
+                order.isin,
+                order.shareCount,
+                price,
+                time,
+                null
+        )
+    }
 }
