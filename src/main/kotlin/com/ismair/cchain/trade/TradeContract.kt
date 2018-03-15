@@ -1,6 +1,6 @@
 package com.ismair.cchain.trade
 
-import com.ismair.cchain.Contract
+import com.ismair.cchain.contract.Contract
 import com.ismair.cchain.trade.data.daxMap
 import com.ismair.cchain.trade.extensions.forEachNonEqualPair
 import com.ismair.cchain.trade.model.TradeConfirmation
@@ -10,8 +10,8 @@ import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
 import java.util.*
 
-class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
-    override fun run() {
+class TradeContract : Contract() {
+    override fun run(tdbWrapper: TDBWrapper) {
         println("loading responses ...")
 
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH)

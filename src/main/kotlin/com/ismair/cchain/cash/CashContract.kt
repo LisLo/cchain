@@ -1,14 +1,14 @@
 package com.ismair.cchain.cash
 
-import com.ismair.cchain.Contract
 import com.ismair.cchain.cash.model.DepotRequest
 import com.ismair.cchain.cash.model.TransferConfirmation
 import com.ismair.cchain.cash.model.TransferRejection
 import com.ismair.cchain.cash.model.TransferRequest
+import com.ismair.cchain.contract.Contract
 import de.transbase.cchain.wrapper.TDBWrapper
 
-class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
-    override fun run() {
+class CashContract : Contract() {
+    override fun run(tdbWrapper: TDBWrapper) {
         println("loading responses ...")
 
         val responses = tdbWrapper.getParsedSentTransactions(listOf(TransferConfirmation::class, TransferRejection::class))
