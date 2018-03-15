@@ -2,7 +2,7 @@ buildscript {
     ext.kotlin_version = '1.2.30'
     ext.serialization_version = '0.4.1'
     ext.kotlin_argparser_version = '2.0.4'
-    ext.cchain_core_version = '1.2'
+    ext.cchain_core_version = '1.2.2'
 
     repositories {
         mavenCentral()

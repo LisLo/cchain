@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DepotRequest(
         val mode: Mode,
-        val name: String,
+        val user: String,
         val isin: String,
         val shareCount: Int,
         val priceLimit: Int,

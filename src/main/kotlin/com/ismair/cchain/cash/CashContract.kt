@@ -28,6 +28,7 @@ class CashContract : Contract() {
                         if (it.mode == TransferConfirmation.Mode.CREDIT) amount else -amount
                     }
                 }
+        val depotExecutions = mutableMapOf<Int, DepotExecution>()
 
         println("${processedRequestIds.size} responses found")
 
@@ -77,7 +78,7 @@ class CashContract : Contract() {
                         val dateLimitParsed = try { sdf.parse(request.dateLimit) } catch (e: Exception) { null }
 
                         val message = when {
-                            request.name.isEmpty() -> "name is required"
+                            request.user.isEmpty() -> "user is required"
                             !daxMap.containsKey(request.isin) -> "isin is not valid"
                             request.shareCount <= 0 -> "share count has to be greater than zero"
                             request.priceLimit <= 0 -> "price limit has to be greater than zero"
@@ -95,7 +96,7 @@ class CashContract : Contract() {
                             println("processing depot request of ${request.shareCount} shares of '${request.isin}' with price limit ${request.priceLimit} cEuro")
 
                             val tradeRequest = TradeRequest(request)
-                            tdbWrapper.createNewTransaction("C-trade", CTrade.publicKeyPKCS8, tradeRequest, true)
+                            val tradeRequestId = tdbWrapper.createNewTransaction("C-trade", CTrade.publicKeyPKCS8, tradeRequest, true).tid
 
                             if (tradeRequest.mode == TradeRequest.Mode.BUY) {
                                 val amount = request.priceLimit * request.shareCount
@@ -107,6 +108,7 @@ class CashContract : Contract() {
 
                             val execution = DepotExecution(it.id, request)
                             tdbWrapper.createNewTransaction(it.chain, it.sender, execution, true)
+                            depotExecutions[tradeRequestId] = execution
                         }
                     } else if (request is TradeConfirmation) {
                         println("processing trade confirmation of ${request.request.shareCount} shares of '${request.request.isin}' with price ${request.price} cEuro")
@@ -125,15 +127,15 @@ class CashContract : Contract() {
                             tdbWrapper.createNewTransaction(it.chain, it.sender, transferConfirmation, true)
                         }
 
-                        //val confirmation = DepotConfirmation(request)
-                        //tdbWrapper.createNewTransaction()
+                        val depotExecution = depotExecutions[request.requestId]!!
+                        val confirmation = DepotConfirmation(depotExecution.requestId, depotExecution.request, request.price)
+                        tdbWrapper.createNewTransaction(it.chain, depotExecution.request.user, confirmation, true)
                     } else if (request is TradeRejection) {
                         println("processing trade rejection of ${request.request.shareCount} shares of '${request.request.isin}' with price limit ${request.request.priceLimit} cEuro")
 
                         // return money if it was buy
 
-                        //val rejection = DepotRejection()
-                        //tdbWrapper.createNewTransaction()
+                        // create DepotRejection
                     }
 
                     processedRequestIds.add(it.id)

@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TradeRequest(
         val mode: Mode,
-        val name: String,
+        val user: String,
         val isin: String,
         val shareCount: Int,
         val priceLimit: Int,
@@ -17,7 +17,7 @@ data class TradeRequest(
 
     constructor(request: DepotRequest) : this(
             if (request.mode == DepotRequest.Mode.BUY) Mode.BUY else Mode.SELL,
-            request.name,
+            request.user,
             request.isin,
             request.shareCount,
             request.priceLimit,

@@ -19,7 +19,7 @@ class TradeContract : Contract() {
         val processedRequestIds = responses.map { it.document.requestId }.toMutableSet()
         val properties = responses
                 .mapNotNull { it.document as? TradeConfirmation }
-                .groupBy { Pair(it.request.name, it.request.isin) }
+                .groupBy { Pair(it.request.user, it.request.isin) }
                 .toList()
                 .associate {
                     it.first to it.second.sumBy {
@@ -42,11 +42,11 @@ class TradeContract : Contract() {
 
                 val validRequests = openRequests.mapNotNull {
                     val request = it.document
-                    val property = properties[Pair(request.name, request.isin)]
+                    val property = properties[Pair(request.user, request.isin)]
                     val dateLimitParsed = try { sdf.parse(request.dateLimit) } catch (e: Exception) { null }
 
                     val message = when {
-                        request.name.isEmpty() -> "name is required"
+                        request.user.isEmpty() -> "user is required"
                         !daxMap.containsKey(request.isin) -> "isin is not valid"
                         request.shareCount <= 0 -> "share count has to be greater than zero"
                         request.priceLimit <= 0 -> "price limit has to be greater than zero"
