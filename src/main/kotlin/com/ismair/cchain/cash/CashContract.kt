@@ -113,7 +113,13 @@ class CashContract : Contract() {
 
                         if (request.request.mode == TradeRequest.Mode.SELL) {
                             val amount = request.price * request.request.shareCount
-                            val purpose = "credit money for ${request.request.shareCount} shares of '${request.request.isin}' with price ${request.price} cEuro"
+                            val purpose = "credit money for sell of ${request.request.shareCount} shares of '${request.request.isin}' with price ${request.price} cEuro"
+                            val transferRequest = TransferRequest(it.sender, amount, purpose)
+                            val transferConfirmation = TransferConfirmation(it.id, transferRequest, TransferConfirmation.Mode.DEBIT)
+                            tdbWrapper.createNewTransaction(it.chain, it.sender, transferConfirmation, true)
+                        } else if (request.price != request.request.priceLimit) {
+                            val amount = (request.request.priceLimit - request.price) * request.request.shareCount
+                            val purpose = "credit money for buy of ${request.request.shareCount} shares of '${request.request.isin}' with price ${request.price} cEuro and price limit ${request.request.priceLimit}"
                             val transferRequest = TransferRequest(it.sender, amount, purpose)
                             val transferConfirmation = TransferConfirmation(it.id, transferRequest, TransferConfirmation.Mode.DEBIT)
                             tdbWrapper.createNewTransaction(it.chain, it.sender, transferConfirmation, true)
