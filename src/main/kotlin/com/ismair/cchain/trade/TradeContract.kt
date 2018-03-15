@@ -2,7 +2,9 @@ package com.ismair.cchain.trade
 
 import com.ismair.cchain.Contract
 import com.ismair.cchain.trade.model.TradeExecution
+import com.ismair.cchain.trade.model.TradeExecutionType
 import com.ismair.cchain.trade.model.TradeOrder
+import com.ismair.cchain.trade.model.TradeOrderType
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.util.*
 
@@ -11,30 +13,45 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
         println("loading executions ...")
 
         val executions = tdbWrapper.getParsedSentTransactions<TradeExecution>()
-        val processedTradeOrderIds = executions.map { it.document.tradeOrderId }.toMutableSet()
-        val countConfirmations = executions.count { it.document.type == TradeExecution.Type.CONFIRMATION }
-        val countRejections = executions.count { it.document.type == TradeExecution.Type.REJECTION }
+        val processedOrderIds = executions.map { it.document.orderId }
+        val properties = executions
+                .groupBy { Pair(it.document.name, it.document.isin) }
+                .toList()
+                .associate {
+                    it.first to it.second.sumBy {
+                        val doc = it.document
+                        if (doc.orderType == TradeOrderType.BUY) doc.shareCount else -doc.shareCount
+                    }
+                }
 
-        println("${processedTradeOrderIds.size} executions found ($countConfirmations confirmations, $countRejections rejections)")
+        println("${processedOrderIds.size} executions found")
 
         while (true) {
             try {
-                println("loading open trade orders ...")
+                println("loading open orders ...")
 
-                val openTradeOrders = tdbWrapper.getParsedReceivedTransactions<TradeOrder>().filter { !processedTradeOrderIds.contains(it.id) }
+                val openOrders = tdbWrapper.getParsedReceivedTransactions<TradeOrder>().filter { !processedOrderIds.contains(it.id) }
 
-                println("verifying ${openTradeOrders.size} open trade orders ...")
+                println("verifying ${openOrders.size} open orders ...")
 
-                val validTradeOrders = openTradeOrders.mapNotNull {
-                    val tradeOrder = it.document
-                    if (tradeOrder.name.isEmpty() ||
-                            !daxMap.containsKey(tradeOrder.isin) ||
-                            tradeOrder.shareCount <= 0 ||
-                            tradeOrder.priceLimit <= 0 ||
-                            tradeOrder.timeLimit.before(Date())) {
-                        println("trade order with id = ${it.id} is not valid, rejecting it ...")
+                val validOrders = openOrders.mapNotNull {
+                    val order = it.document
+                    val property = properties[Pair(order.name, order.isin)]
 
-                        val rejection = TradeExecution(TradeExecution.Type.REJECTION, it.id, tradeOrder)
+                    val message = when {
+                        order.name.isEmpty() -> "name is required"
+                        !daxMap.containsKey(order.isin) -> "isin is not valid"
+                        order.shareCount <= 0 -> "share count has to be greater than zero"
+                        order.priceLimit <= 0 -> "price limit has to be greater than zero"
+                        order.timeLimit.before(Date()) -> "order is expired"
+                        order.orderType == TradeOrderType.SELL && (property == null || property < order.shareCount) -> "selling shares without property"
+                        else -> null
+                    }
+
+                    if (message != null) {
+                        println("rejecting order with id = ${it.id} with reason '$message' ...")
+
+                        val rejection = TradeExecution(TradeExecutionType.REJECTION, it.id, order, message)
                         tdbWrapper.createNewTransaction(it.chain, it.sender, rejection, true)
                         null
                     } else {
@@ -42,13 +59,13 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                     }
                 }
 
-                println("search matching trade orders ...")
+                println("search matching orders ...")
 
-                validTradeOrders.filter { it.document.type == TradeOrder.Type.BUY }.forEach {
+                validOrders.filter { it.document.orderType == TradeOrderType.BUY }.forEach {
                     val buyTradeOrder = it.document
-                    val sellTradeOrder = validTradeOrders.firstOrNull {
+                    val sellTradeOrder = validOrders.firstOrNull {
                         val sellTradeOrder = it.document
-                        sellTradeOrder.type == TradeOrder.Type.SELL &&
+                        sellTradeOrder.orderType == TradeOrderType.SELL &&
                                 sellTradeOrder.isin == buyTradeOrder.isin &&
                                 sellTradeOrder.shareCount == buyTradeOrder.shareCount &&
                                 sellTradeOrder.priceLimit <= buyTradeOrder.priceLimit
@@ -62,10 +79,10 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
                         val price = (buyTradeOrder.priceLimit + sellTradeOrder.priceLimit) / 2
                         val date = Date()
 
-                        val confirmation1 = TradeExecution(TradeExecution.Type.CONFIRMATION, 0, buyTradeOrder.name, isin, shareCount, price, date)
+                        val confirmation1 = TradeExecution(TradeExecutionType.CONFIRMATION, 0, TradeOrderType.BUY, buyTradeOrder.name, isin, shareCount, price, date, "success")
                         tdbWrapper.createNewTransaction("C-trade", "", confirmation1, true)
 
-                        val confirmation2 = TradeExecution(TradeExecution.Type.CONFIRMATION, 0, sellTradeOrder.name, isin, shareCount, price, date)
+                        val confirmation2 = TradeExecution(TradeExecutionType.CONFIRMATION, 0, TradeOrderType.SELL, sellTradeOrder.name, isin, shareCount, price, date, "success")
                         tdbWrapper.createNewTransaction("C-trade", "", confirmation2, true)
                     }
                 }
