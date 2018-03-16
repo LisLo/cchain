@@ -1,4 +1,4 @@
-package com.ismair.cchain.cash.data
+package com.ismair.cchain.contracts.cash.data
 
 import de.transbase.cchain.extensions.toPrivateKey
 import de.transbase.cchain.extensions.toPublicKey

@@ -1,6 +1,6 @@
-package com.ismair.cchain.cash.model
+package com.ismair.cchain.contracts.cash.model
 
-import com.ismair.cchain.contract.ContractRequest
+import com.ismair.cchain.contracts.ContractRequest
 import kotlinx.serialization.Serializable
 
 @Serializable

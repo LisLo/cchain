@@ -1,4 +1,4 @@
-package com.ismair.cchain.trade.data
+package com.ismair.cchain.data
 
 val daxMap = hashMapOf(
         "DE000A1EWWW0" to "adidas",
