@@ -3,6 +3,7 @@ package com.ismair.cchain.contracts.cash
 import com.ismair.cchain.contracts.Contract
 import com.ismair.cchain.contracts.cash.model.*
 import com.ismair.cchain.contracts.trade.model.TradeConfirmation
+import com.ismair.cchain.contracts.trade.model.TradeMode
 import com.ismair.cchain.contracts.trade.model.TradeRejection
 import com.ismair.cchain.contracts.trade.model.TradeRequest
 import com.ismair.cchain.data.daxMap
@@ -93,13 +94,12 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
         println("verifying depot request ...")
 
         val message = when {
-            user.isEmpty() -> "user is required"
             !daxMap.containsKey(isin) -> "isin is not valid"
             shareCount <= 0 -> "share count has to be greater than zero"
             priceLimit <= 0 -> "price limit has to be greater than zero"
             dateLimit == null -> "date limit could not be parsed"
             dateLimit.before(Date()) -> "request is expired"
-            mode == TradeRequest.Mode.SELL &&
+            mode == TradeMode.SELL &&
                     !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
             else -> null
         }
@@ -112,7 +112,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
         } else {
             println("processing depot request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro")
 
-            val tradeRequest = TradeRequest(request)
+            val tradeRequest = TradeRequest(user, request)
             tdbWrapper.createNewTransaction(chain, CTrade.publicKeyPKCS8, tradeRequest, true)
 
             val confirmation = DepotConfirmation(id, request)
@@ -121,16 +121,15 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     }
 
     private fun handleTradeConfirmation(chain: String, id: Int, sender: String, confirmation: TradeConfirmation) {
-        val request = confirmation.request
-        val user = request.user
-        val isin = request.isin
-        val shareCount = request.shareCount
+        val user = confirmation.user
+        val isin = confirmation.isin
+        val shareCount = confirmation.shareCount
         val price = confirmation.price
 
-        println("forward trade confirmation of $shareCount shares of '$isin' with price $price cEuro")
+        println("forward trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro")
 
         tdbWrapper.createNewTransaction(chain, user, confirmation, true)
-        depotService.add(user, confirmation)
+        depotService.add(confirmation)
     }
 
     private fun handleTradeRejection(chain: String, id: Int, sender: String, rejection: TradeRejection) {

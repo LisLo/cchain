@@ -1,24 +1,23 @@
 package com.ismair.cchain.services
 
 import com.ismair.cchain.contracts.trade.model.TradeConfirmation
-import com.ismair.cchain.contracts.trade.model.TradeRequest
+import com.ismair.cchain.contracts.trade.model.TradeMode
 
 class DepotService(list: List<TradeConfirmation>) {
-    private val shares = list
-            .groupBy { Pair(it.request.user, it.request.isin) }
-            .toList()
-            .associate { it.first to it.second.sumBy { getSignedShareCount(it) } }
-            .toMutableMap()
+    private val requestIds = mutableSetOf<Int>()
+    private val shares = mutableMapOf<Pair<String, String>, Int>()
 
-    private fun getSignedShareCount(confirmation: TradeConfirmation): Int {
-        val shareCount = confirmation.request.shareCount
-        return if (confirmation.request.mode == TradeRequest.Mode.BUY) shareCount else -shareCount
+    init {
+        list.forEach { add(it) }
     }
 
-    fun add(user: String, confirmation: TradeConfirmation) {
-        val isin = confirmation.request.isin
-        val key = Pair(user, isin)
-        shares[key] = shares.getOrDefault(key, 0) + getSignedShareCount(confirmation)
+    fun add(confirmation: TradeConfirmation) {
+        if (requestIds.contains(confirmation.requestId)) {
+            val key = Pair(confirmation.user, confirmation.isin)
+            val shareCount = confirmation.shareCount
+            val signedShareCount = if (confirmation.mode == TradeMode.BUY) shareCount else -shareCount
+            shares[key] = shares.getOrDefault(key, 0) + signedShareCount
+        }
     }
 
     fun hasEnoughShares(user: String, isin: String, shareCount: Int): Boolean {
