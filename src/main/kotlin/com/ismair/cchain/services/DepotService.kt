@@ -1,7 +1,7 @@
 package com.ismair.cchain.services
 
-import com.ismair.cchain.contracts.trade.model.TradeConfirmation
-import com.ismair.cchain.contracts.trade.model.TradeMode
+import com.ismair.cchain.model.trade.TradeConfirmation
+import com.ismair.cchain.model.trade.TradeMode
 
 class DepotService(list: List<TradeConfirmation>) {
     private val requestIds = mutableSetOf<Int>()

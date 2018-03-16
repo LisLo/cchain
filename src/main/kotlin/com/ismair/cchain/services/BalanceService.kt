@@ -1,6 +1,6 @@
 package com.ismair.cchain.services
 
-import com.ismair.cchain.contracts.cash.model.TransferConfirmation
+import com.ismair.cchain.model.transfer.TransferConfirmation
 
 class BalanceService(list: List<TransferConfirmation>) {
     private val requestIds = mutableSetOf<Int>()

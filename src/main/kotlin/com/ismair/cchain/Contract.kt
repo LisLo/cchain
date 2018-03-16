@@ -1,4 +1,4 @@
-package com.ismair.cchain.contracts
+package com.ismair.cchain
 
 import de.transbase.cchain.wrapper.TDBWrapper
 

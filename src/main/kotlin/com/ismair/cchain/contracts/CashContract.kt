@@ -1,20 +1,24 @@
-package com.ismair.cchain.contracts.cash
+package com.ismair.cchain.contracts
 
-import com.ismair.cchain.contracts.Contract
-import com.ismair.cchain.contracts.cash.model.*
-import com.ismair.cchain.contracts.trade.model.TradeConfirmation
-import com.ismair.cchain.contracts.trade.model.TradeMode
-import com.ismair.cchain.contracts.trade.model.TradeRejection
-import com.ismair.cchain.contracts.trade.model.TradeRequest
+import com.ismair.cchain.Contract
+import com.ismair.cchain.model.trade.TradeConfirmation
+import com.ismair.cchain.model.trade.TradeMode
+import com.ismair.cchain.model.trade.TradeRejection
+import com.ismair.cchain.model.trade.TradeRequest
 import com.ismair.cchain.data.daxMap
+import com.ismair.cchain.model.depot.DepotConfirmation
+import com.ismair.cchain.model.depot.DepotRejection
+import com.ismair.cchain.model.depot.DepotRequest
+import com.ismair.cchain.model.transfer.TransferConfirmation
+import com.ismair.cchain.model.transfer.TransferRejection
+import com.ismair.cchain.model.transfer.TransferRequest
 import com.ismair.cchain.services.BalanceService
 import com.ismair.cchain.services.DepotService
-import com.ismair.cchain.ui.depot.data.CTrade
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
 import java.util.*
 
-class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
+class CashContract(tdbWrapper: TDBWrapper, private val tradePublicKeyPKCS8: String) : Contract(tdbWrapper) {
     private val responses = tdbWrapper.getParsedSentTransactions(listOf(
             TransferConfirmation::class, TransferRejection::class,
             DepotConfirmation::class, DepotRejection::class,
@@ -105,7 +109,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
             println("processing depot request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro")
 
             val tradeRequest = TradeRequest(user, request)
-            tdbWrapper.createNewTransaction(chain, CTrade.publicKeyPKCS8, tradeRequest, true)
+            tdbWrapper.createNewTransaction(chain, tradePublicKeyPKCS8, tradeRequest, true)
 
             val confirmation = DepotConfirmation(id, request)
             tdbWrapper.createNewTransaction(chain, user, confirmation, true)

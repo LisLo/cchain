@@ -1,11 +1,10 @@
-package com.ismair.cchain.contracts.trade
+package com.ismair.cchain.contracts
 
-import com.ismair.cchain.contracts.Contract
-import com.ismair.cchain.contracts.cash.data.CCash
-import com.ismair.cchain.contracts.trade.model.TradeConfirmation
-import com.ismair.cchain.contracts.trade.model.TradeMode
-import com.ismair.cchain.contracts.trade.model.TradeRejection
-import com.ismair.cchain.contracts.trade.model.TradeRequest
+import com.ismair.cchain.Contract
+import com.ismair.cchain.model.trade.TradeConfirmation
+import com.ismair.cchain.model.trade.TradeMode
+import com.ismair.cchain.model.trade.TradeRejection
+import com.ismair.cchain.model.trade.TradeRequest
 import com.ismair.cchain.data.daxMap
 import com.ismair.cchain.extensions.forEachNonEqualPair
 import com.ismair.cchain.services.DepotService
@@ -13,7 +12,7 @@ import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
 import java.util.*
 
-class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
+class TradeContract(tdbWrapper: TDBWrapper, private val cashPublicKeyPKCS8: String) : Contract(tdbWrapper) {
     private val responses = tdbWrapper.getParsedSentTransactions(listOf(TradeConfirmation::class, TradeRejection::class))
     private val processedRequestIds = responses.map { it.document.requestId }.toMutableSet()
     private val depotService = DepotService(responses.mapNotNull { it.document as? TradeConfirmation })
@@ -34,7 +33,7 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
             val dateLimitParsed = try { dateFormat.parse(dateLimit) } catch (e: Exception) { null }
 
             val message = when {
-                sender != CCash.publicKeyPKCS8 -> "sender is not accepted"
+                sender != cashPublicKeyPKCS8 -> "sender is not accepted"
                 user.isEmpty() -> "user is required"
                 !daxMap.containsKey(isin) -> "isin is not valid"
                 shareCount <= 0 -> "share count has to be greater than zero"

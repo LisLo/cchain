@@ -1,3 +1,3 @@
-package com.ismair.cchain.contracts
+package com.ismair.cchain
 
 interface ContractRequest : ContractDocument

@@ -1,3 +1,3 @@
-package com.ismair.cchain.contracts
+package com.ismair.cchain
 
 enum class ContractType { CASH, TRADE }

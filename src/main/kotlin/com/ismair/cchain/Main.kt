@@ -1,39 +1,67 @@
 package com.ismair.cchain
 
-import com.ismair.cchain.contracts.ContractType
-import com.ismair.cchain.contracts.cash.CashContract
-import com.ismair.cchain.contracts.trade.TradeContract
+import com.ismair.cchain.contracts.CashContract
+import com.ismair.cchain.contracts.TradeContract
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.mainBody
 import de.transbase.cchain.extensions.toPrivateKey
 import de.transbase.cchain.extensions.toPublicKey
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.io.File
+import java.security.PrivateKey
+import java.security.PublicKey
 
 class ArgumentClass(parser: ArgParser) {
+    companion object {
+        const val HELP_TEXT_KEY = "path to a base64 encoded pem file"
+        const val HELP_TEXT_URL = "url to the transaction database"
+        const val HELP_TEXT_USER = "username of the transaction database"
+        const val HELP_TEXT_PASS = "password of the transaction database"
+    }
+
     val contractType by parser.mapping(
             "--cash" to ContractType.CASH,
             "--trade" to ContractType.TRADE,
             help = "contracts type")
-    val pub by parser.storing("path to a base64 encoded pem file containing the public key")
-    val priv by parser.storing("path to a base64 encoded pem file containing the private key")
-    val url by parser.storing("url to the transaction database")
-    val user by parser.storing("username of the transaction database")
-    val pass by parser.storing("password of the transaction database")
+    val cashPub by parser.storing(HELP_TEXT_KEY)
+    val cashPriv by parser.storing(HELP_TEXT_KEY)
+    val tradePub by parser.storing(HELP_TEXT_KEY)
+    val tradePriv by parser.storing(HELP_TEXT_KEY)
+    val url by parser.storing(HELP_TEXT_URL)
+    val user by parser.storing(HELP_TEXT_USER)
+    val pass by parser.storing(HELP_TEXT_PASS)
+}
+
+fun readKey(path: String) = File(path).readText()
+
+fun readPublicKey(path: String): Pair<String, PublicKey> {
+    val publicKeyPKCS8 = readKey(path)
+    return Pair(publicKeyPKCS8, publicKeyPKCS8.toPublicKey())
+}
+
+fun readPrivateKey(path: String): Pair<String, PrivateKey> {
+    val privateKeyPKCS8 = readKey(path)
+    return Pair(privateKeyPKCS8, privateKeyPKCS8.toPrivateKey())
 }
 
 fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args).parseInto(::ArgumentClass)
 
     parsedArgs.run {
-        val publicKeyPKCS8 = File(pub).readText()
-        val publicKey = publicKeyPKCS8.toPublicKey()
-        val privateKeyPKCS8 = File(priv).readText()
-        val privateKey = privateKeyPKCS8.toPrivateKey()
-        val tdbWrapper = TDBWrapper(publicKey, publicKeyPKCS8, privateKey, url, user, pass)
+        val (cashPublicKeyPKCS8, cashPublicKey) = readPublicKey(cashPub)
+        val (_, cashPrivateKey) = readPrivateKey(cashPriv)
+        val (tradePublicKeyPKCS8, tradePublicKey) = readPublicKey(tradePub)
+        val (_, tradePrivateKey) = readPrivateKey(tradePriv)
+
         val contract = when (contractType) {
-            ContractType.CASH -> CashContract(tdbWrapper)
-            ContractType.TRADE -> TradeContract(tdbWrapper)
+            ContractType.CASH -> {
+                val tdbWrapper = TDBWrapper(cashPublicKey, cashPublicKeyPKCS8, cashPrivateKey, url, user, pass)
+                CashContract(tdbWrapper, tradePublicKeyPKCS8)
+            }
+            ContractType.TRADE -> {
+                val tdbWrapper = TDBWrapper(tradePublicKey, tradePublicKeyPKCS8, tradePrivateKey, url, user, pass)
+                TradeContract(tdbWrapper, cashPublicKeyPKCS8)
+            }
         }
 
         while (true) {
