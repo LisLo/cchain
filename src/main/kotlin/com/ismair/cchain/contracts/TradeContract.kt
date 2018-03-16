@@ -1,12 +1,12 @@
 package com.ismair.cchain.contracts
 
 import com.ismair.cchain.abstracts.Contract
+import com.ismair.cchain.data.daxMap
+import com.ismair.cchain.extensions.forEachNonEqualPair
 import com.ismair.cchain.model.trade.TradeConfirmation
 import com.ismair.cchain.model.trade.TradeMode
 import com.ismair.cchain.model.trade.TradeRejection
 import com.ismair.cchain.model.trade.TradeRequest
-import com.ismair.cchain.data.daxMap
-import com.ismair.cchain.extensions.forEachNonEqualPair
 import com.ismair.cchain.services.DepotService
 import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
@@ -73,12 +73,12 @@ class TradeContract(tdbWrapper: TDBWrapper, private val cashPublicKeyPKCS8: Stri
 
                 println("confirming trades for $shareCount1 shares of $isin1 at price $price ...")
 
-                val confirmation1 = TradeConfirmation(id1, mode1, user1, isin1, shareCount1, price)
+                val confirmation1 = TradeConfirmation(id1, mode1, user1, isin1, shareCount1, priceLimit1, price)
                 tdbWrapper.createNewTransaction(chain1, sender1, confirmation1, true)
                 depotService.add(confirmation1)
                 matchedRequestIds.add(id1)
 
-                val confirmation2 = TradeConfirmation(id2, mode2, user2, isin2, shareCount2, price)
+                val confirmation2 = TradeConfirmation(id2, mode2, user2, isin2, shareCount2, priceLimit2, price)
                 tdbWrapper.createNewTransaction(chain2, sender2, confirmation2, true)
                 depotService.add(confirmation2)
                 matchedRequestIds.add(id2)

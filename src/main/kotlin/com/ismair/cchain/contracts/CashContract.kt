@@ -1,14 +1,14 @@
 package com.ismair.cchain.contracts
 
 import com.ismair.cchain.abstracts.Contract
-import com.ismair.cchain.model.trade.TradeConfirmation
-import com.ismair.cchain.model.trade.TradeMode
-import com.ismair.cchain.model.trade.TradeRejection
-import com.ismair.cchain.model.trade.TradeRequest
 import com.ismair.cchain.data.daxMap
 import com.ismair.cchain.model.depot.DepotConfirmation
 import com.ismair.cchain.model.depot.DepotRejection
 import com.ismair.cchain.model.depot.DepotRequest
+import com.ismair.cchain.model.trade.TradeConfirmation
+import com.ismair.cchain.model.trade.TradeMode
+import com.ismair.cchain.model.trade.TradeRejection
+import com.ismair.cchain.model.trade.TradeRequest
 import com.ismair.cchain.model.transfer.TransferConfirmation
 import com.ismair.cchain.model.transfer.TransferRejection
 import com.ismair.cchain.model.transfer.TransferRequest
@@ -18,7 +18,11 @@ import de.transbase.cchain.wrapper.TDBWrapper
 import java.text.SimpleDateFormat
 import java.util.*
 
-class CashContract(tdbWrapper: TDBWrapper, private val tradePublicKeyPKCS8: String) : Contract(tdbWrapper) {
+class CashContract(
+        tdbWrapper: TDBWrapper,
+        private val cashPublicKeyPKCS8: String,
+        private val tradePublicKeyPKCS8: String
+) : Contract(tdbWrapper) {
     private val responses = tdbWrapper.getParsedSentTransactions(listOf(
             TransferConfirmation::class, TransferRejection::class,
             DepotConfirmation::class, DepotRejection::class,
@@ -111,26 +115,52 @@ class CashContract(tdbWrapper: TDBWrapper, private val tradePublicKeyPKCS8: Stri
             val tradeRequest = TradeRequest(user, request)
             tdbWrapper.createNewTransaction(chain, tradePublicKeyPKCS8, tradeRequest, true)
 
+            if (tradeRequest.mode == TradeMode.BUY) {
+                val amount = priceLimit * shareCount
+                val purpose = "freeze for the request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro"
+                val confirmation = TransferConfirmation(id, user, cashPublicKeyPKCS8, amount, purpose)
+                tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
+            }
+
             val confirmation = DepotConfirmation(id, request)
             tdbWrapper.createNewTransaction(chain, user, confirmation, true)
         }
     }
 
     private fun handleTradeConfirmation(chain: String, id: Int, sender: String, confirmation: TradeConfirmation) {
-        val (_, _, user, isin, shareCount, price) = confirmation
+        val (_, mode, user, isin, shareCount, priceLimit, price) = confirmation
 
         println("forward trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro")
 
         tdbWrapper.createNewTransaction(chain, user, confirmation, true)
         depotService.add(confirmation)
+
+        if (mode == TradeMode.SELL) {
+            val amount = price * shareCount
+            val purpose = "sell of $shareCount shares of '$isin' with a price of $price cEuro"
+            val confirmation2 = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
+            tdbWrapper.createNewTransaction(chain, user, confirmation2, true)
+        } else if (price != priceLimit) {
+            val amount = (priceLimit - price) * shareCount
+            val purpose = "purchase of $shareCount shares of '$isin' with a price difference of $amount cEuro"
+            val confirmation2 = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
+            tdbWrapper.createNewTransaction(chain, sender, confirmation2, true)
+        }
     }
 
     private fun handleTradeRejection(chain: String, id: Int, sender: String, rejection: TradeRejection) {
         val request = rejection.request
-        val (_, user, isin, shareCount, priceLimit) = request
+        val (mode, user, isin, shareCount, priceLimit) = request
 
         println("forward trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro")
 
         tdbWrapper.createNewTransaction(chain, user, rejection, true)
+
+        if (mode == TradeMode.BUY) {
+            val amount = priceLimit * shareCount
+            val purpose = "payback for the request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro"
+            val confirmation = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
+            tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
+        }
     }
 }

@@ -58,7 +58,7 @@ fun main(args: Array<String>) = mainBody {
         val contract = when (contractType) {
             ContractType.CASH -> {
                 val tdbWrapper = TDBWrapper(cashPublicKey, cashPublicKeyPKCS8, cashPrivateKey, url, user, pass)
-                CashContract(tdbWrapper, tradePublicKeyPKCS8)
+                CashContract(tdbWrapper, cashPublicKeyPKCS8, tradePublicKeyPKCS8)
             }
             ContractType.TRADE -> {
                 val tdbWrapper = TDBWrapper(tradePublicKey, tradePublicKeyPKCS8, tradePrivateKey, url, user, pass)

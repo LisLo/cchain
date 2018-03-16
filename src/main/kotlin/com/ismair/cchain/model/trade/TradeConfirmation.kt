@@ -10,5 +10,6 @@ data class TradeConfirmation(
         val user: String,
         val isin: String,
         val shareCount: Int,
+        val priceLimit: Int,
         val price: Int
 ) : ContractResponse()
