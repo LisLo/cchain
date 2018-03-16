@@ -3,6 +3,7 @@ package com.ismair.cchain
 import com.ismair.cchain.contracts.CashContract
 import com.ismair.cchain.contracts.TradeContract
 import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.DefaultHelpFormatter
 import com.xenomachina.argparser.mainBody
 import de.transbase.cchain.extensions.toPrivateKey
 import de.transbase.cchain.extensions.toPublicKey
@@ -15,6 +16,7 @@ enum class ContractType { CASH, TRADE }
 
 class ArgumentClass(parser: ArgParser) {
     companion object {
+        const val HELP_TEXT_TYPE = "contract type"
         const val HELP_TEXT_KEY = "path to a base64 encoded pem file"
         const val HELP_TEXT_URL = "url to the transaction database"
         const val HELP_TEXT_USER = "username of the transaction database"
@@ -24,7 +26,7 @@ class ArgumentClass(parser: ArgParser) {
     val contractType by parser.mapping(
             "--cash" to ContractType.CASH,
             "--trade" to ContractType.TRADE,
-            help = "contracts type")
+            help = HELP_TEXT_TYPE)
     val cashPub by parser.storing(HELP_TEXT_KEY)
     val cashPriv by parser.storing(HELP_TEXT_KEY)
     val tradePub by parser.storing(HELP_TEXT_KEY)
@@ -47,7 +49,8 @@ fun readPrivateKey(path: String): Pair<String, PrivateKey> {
 }
 
 fun main(args: Array<String>) = mainBody {
-    val parsedArgs = ArgParser(args).parseInto(::ArgumentClass)
+    val info = "This application is able to run the smart contracts C-cash and C-trade"
+    val parsedArgs = ArgParser(args, helpFormatter = DefaultHelpFormatter(info)).parseInto(::ArgumentClass)
 
     parsedArgs.run {
         val (cashPublicKeyPKCS8, cashPublicKey) = readPublicKey(cashPub)
