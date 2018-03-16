@@ -1,6 +1,6 @@
 package com.ismair.cchain.model.depot
 
-import com.ismair.cchain.ContractRequest
+import com.ismair.cchain.abstracts.ContractRequest
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,4 +10,4 @@ data class DepotRequest(
         val shareCount: Int,
         val priceLimit: Int,
         val dateLimit: String
-) : ContractRequest
+) : ContractRequest()

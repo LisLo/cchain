@@ -1,6 +1,6 @@
 package com.ismair.cchain.model.trade
 
-import com.ismair.cchain.ContractResponse
+import com.ismair.cchain.abstracts.ContractResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -11,4 +11,4 @@ data class TradeConfirmation(
         val isin: String,
         val shareCount: Int,
         val price: Int
-) : ContractResponse
+) : ContractResponse()

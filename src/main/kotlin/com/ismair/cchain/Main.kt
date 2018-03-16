@@ -11,6 +11,8 @@ import java.io.File
 import java.security.PrivateKey
 import java.security.PublicKey
 
+enum class ContractType { CASH, TRADE }
+
 class ArgumentClass(parser: ArgParser) {
     companion object {
         const val HELP_TEXT_KEY = "path to a base64 encoded pem file"
@@ -68,7 +70,7 @@ fun main(args: Array<String>) = mainBody {
             try {
                 contract.run()
             } catch (e: Exception) {
-                println("an exception was thrown (${e.message}), restarting contracts ...")
+                println("an exception was thrown (${e.message}), restarting contract ...")
             }
         }
     }

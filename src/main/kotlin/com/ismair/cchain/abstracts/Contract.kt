@@ -1,4 +1,4 @@
-package com.ismair.cchain
+package com.ismair.cchain.abstracts
 
 import de.transbase.cchain.wrapper.TDBWrapper
 

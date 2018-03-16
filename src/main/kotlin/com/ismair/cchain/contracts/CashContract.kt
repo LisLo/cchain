@@ -1,6 +1,6 @@
 package com.ismair.cchain.contracts
 
-import com.ismair.cchain.Contract
+import com.ismair.cchain.abstracts.Contract
 import com.ismair.cchain.model.trade.TradeConfirmation
 import com.ismair.cchain.model.trade.TradeMode
 import com.ismair.cchain.model.trade.TradeRejection

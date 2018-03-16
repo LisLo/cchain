@@ -1,6 +1,6 @@
 package com.ismair.cchain.model.transfer
 
-import com.ismair.cchain.ContractResponse
+import com.ismair.cchain.abstracts.ContractResponse
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,4 +10,4 @@ data class TransferConfirmation(
         val payee: String,
         val amount: Int,
         val purpose: String
-) : ContractResponse
+) : ContractResponse()
