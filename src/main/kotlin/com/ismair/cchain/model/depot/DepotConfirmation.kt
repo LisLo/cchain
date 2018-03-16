@@ -6,5 +6,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class DepotConfirmation(
         override val requestId: Int,
-        val request: DepotRequest
+        val mode: DepotMode,
+        val isin: String,
+        val shareCount: Int,
+        val priceLimit: Int,
+        val dateLimit: String
 ) : ContractResponse()

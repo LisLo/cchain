@@ -3,8 +3,12 @@ package com.ismair.cchain.contracts
 import com.ismair.cchain.abstracts.Contract
 import com.ismair.cchain.data.daxMap
 import com.ismair.cchain.model.depot.DepotConfirmation
+import com.ismair.cchain.model.depot.DepotMode
 import com.ismair.cchain.model.depot.DepotRejection
 import com.ismair.cchain.model.depot.DepotRequest
+import com.ismair.cchain.model.right.RightConfirmation
+import com.ismair.cchain.model.right.RightRejection
+import com.ismair.cchain.model.right.RightRequest
 import com.ismair.cchain.model.trade.TradeConfirmation
 import com.ismair.cchain.model.trade.TradeMode
 import com.ismair.cchain.model.trade.TradeRejection
@@ -12,6 +16,7 @@ import com.ismair.cchain.model.trade.TradeRequest
 import com.ismair.cchain.model.transfer.TransferConfirmation
 import com.ismair.cchain.model.transfer.TransferRejection
 import com.ismair.cchain.model.transfer.TransferRequest
+import com.ismair.cchain.services.AuthorizationService
 import com.ismair.cchain.services.BalanceService
 import com.ismair.cchain.services.DepotService
 import de.transbase.cchain.wrapper.TDBWrapper
@@ -25,10 +30,12 @@ class CashContract(
 ) : Contract(tdbWrapper) {
     private val responses = tdbWrapper.getParsedSentTransactions(listOf(
             TransferConfirmation::class, TransferRejection::class,
+            RightConfirmation::class, RightRejection::class,
             DepotConfirmation::class, DepotRejection::class,
             TradeConfirmation::class, TradeRejection::class))
     private val processedRequestIds = responses.map { it.document.requestId }.toMutableSet()
     private val balanceService = BalanceService(responses.mapNotNull { it.document as? TransferConfirmation })
+    private val authorizationService = AuthorizationService(responses.mapNotNull { it.document as? RightConfirmation })
     private val depotService = DepotService(responses.mapNotNull { it.document as? TradeConfirmation })
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd")
 
@@ -37,7 +44,7 @@ class CashContract(
 
         val openDocuments = tdbWrapper
                 .getParsedReceivedTransactions(listOf(
-                        TransferRequest::class, DepotRequest::class,
+                        TransferRequest::class, RightRequest::class, DepotRequest::class,
                         TradeConfirmation::class, TradeRejection::class))
                 .filter { !processedRequestIds.contains(it.id) }
 
@@ -48,6 +55,7 @@ class CashContract(
 
             when (document) {
                 is TransferRequest -> handleTransferRequest(chain, id, sender, document)
+                is RightRequest -> handleRightRequest(chain, id, sender, document)
                 is DepotRequest -> handleDepotRequest(chain, id, sender, document)
                 is TradeConfirmation -> handleTradeConfirmation(chain, id, sender, document)
                 is TradeRejection -> handleTradeRejection(chain, id, sender, document)
@@ -77,12 +85,35 @@ class CashContract(
             val rejection = TransferRejection(id, request, message)
             tdbWrapper.createNewTransaction(chain, payer, rejection, true)
         } else {
-            println("processing transfer request of $amount cEuro with purpose '$purpose'")
+            println("processing transfer request of $amount cEuro with purpose '$purpose' ...")
 
             val confirmation = TransferConfirmation(id, payer, payee, amount, purpose)
             tdbWrapper.createNewTransaction(chain, payer, confirmation, true)
             tdbWrapper.createNewTransaction(chain, payee, confirmation, true)
             balanceService.add(confirmation)
+        }
+    }
+
+    private fun handleRightRequest(chain: String, id: Int, sender: String, request: RightRequest) {
+        val (user) = request
+
+        println("verifying right request ...")
+
+        val message = when {
+            user.isEmpty() -> "user is required"
+            else -> null
+        }
+
+        if (message != null) {
+            println("rejecting right request with id = $id with reason '$message' ...")
+
+            val rejection = RightRejection(id, request, message)
+            tdbWrapper.createNewTransaction(chain, sender, rejection, true)
+        } else {
+            println("processing right request for user '$user' ...")
+
+            val confirmation = RightConfirmation(id, user)
+            tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
         }
     }
 
@@ -99,6 +130,7 @@ class CashContract(
             priceLimit <= 0 -> "price limit has to be greater than zero"
             dateLimitParsed == null -> "date limit could not be parsed"
             dateLimitParsed.before(Date()) -> "request is expired"
+            authorizationService.hasRight(user) -> "user is not authorized for depot requests"
             mode == TradeMode.SELL &&
                     !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
             else -> null
@@ -110,9 +142,10 @@ class CashContract(
             val rejection = DepotRejection(id, request, message)
             tdbWrapper.createNewTransaction(chain, user, rejection, true)
         } else {
-            println("processing depot request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro")
+            println("processing depot request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro ...")
 
-            val tradeRequest = TradeRequest(user, request)
+            val mappedMode = if (request.mode == DepotMode.BUY) TradeMode.BUY else TradeMode.SELL
+            val tradeRequest = TradeRequest(mappedMode, user, isin, shareCount, priceLimit, dateLimit)
             tdbWrapper.createNewTransaction(chain, tradePublicKeyPKCS8, tradeRequest, true)
 
             if (tradeRequest.mode == TradeMode.BUY) {
@@ -122,7 +155,7 @@ class CashContract(
                 tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
             }
 
-            val confirmation = DepotConfirmation(id, request)
+            val confirmation = DepotConfirmation(id, mode, isin, shareCount, priceLimit, dateLimit)
             tdbWrapper.createNewTransaction(chain, user, confirmation, true)
         }
     }
@@ -130,7 +163,7 @@ class CashContract(
     private fun handleTradeConfirmation(chain: String, id: Int, sender: String, confirmation: TradeConfirmation) {
         val (_, mode, user, isin, shareCount, priceLimit, price) = confirmation
 
-        println("forward trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro")
+        println("forwarding trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro ...")
 
         tdbWrapper.createNewTransaction(chain, user, confirmation, true)
         depotService.add(confirmation)
@@ -152,7 +185,7 @@ class CashContract(
         val request = rejection.request
         val (mode, user, isin, shareCount, priceLimit) = request
 
-        println("forward trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro")
+        println("forwarding trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro ...")
 
         tdbWrapper.createNewTransaction(chain, user, rejection, true)
 
