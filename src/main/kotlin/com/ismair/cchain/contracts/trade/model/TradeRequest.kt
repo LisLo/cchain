@@ -1,6 +1,7 @@
 package com.ismair.cchain.contracts.trade.model
 
 import com.ismair.cchain.contracts.ContractRequest
+import com.ismair.cchain.contracts.cash.model.DepotMode
 import com.ismair.cchain.contracts.cash.model.DepotRequest
 import kotlinx.serialization.Serializable
 
@@ -14,7 +15,7 @@ data class TradeRequest(
         val dateLimit: String
 ) : ContractRequest {
     constructor(user: String, request: DepotRequest) : this(
-            if (request.mode == DepotRequest.Mode.BUY) TradeMode.BUY else TradeMode.SELL,
+            if (request.mode == DepotMode.BUY) TradeMode.BUY else TradeMode.SELL,
             user,
             request.isin,
             request.shareCount,

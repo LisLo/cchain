@@ -3,6 +3,7 @@ package com.ismair.cchain.contracts.trade
 import com.ismair.cchain.contracts.Contract
 import com.ismair.cchain.contracts.cash.data.CCash
 import com.ismair.cchain.contracts.trade.model.TradeConfirmation
+import com.ismair.cchain.contracts.trade.model.TradeMode
 import com.ismair.cchain.contracts.trade.model.TradeRejection
 import com.ismair.cchain.contracts.trade.model.TradeRequest
 import com.ismair.cchain.data.daxMap
@@ -28,28 +29,29 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
         println("verifying ${openRequests.size} open requests ...")
 
         val validRequests = openRequests.mapNotNull {
-            val request = it.document
-            val dateLimitParsed = try { dateFormat.parse(request.dateLimit) } catch (e: Exception) { null }
+            val (chain, id, sender, _, request) = it
+            val (mode, user, isin, shareCount, priceLimit, dateLimit) = request
+            val dateLimitParsed = try { dateFormat.parse(dateLimit) } catch (e: Exception) { null }
 
             val message = when {
-                it.sender != CCash.publicKeyPKCS8 -> "sender is not accepted"
-                request.user.isEmpty() -> "user is required"
-                !daxMap.containsKey(request.isin) -> "isin is not valid"
-                request.shareCount <= 0 -> "share count has to be greater than zero"
-                request.priceLimit <= 0 -> "price limit has to be greater than zero"
+                sender != CCash.publicKeyPKCS8 -> "sender is not accepted"
+                user.isEmpty() -> "user is required"
+                !daxMap.containsKey(isin) -> "isin is not valid"
+                shareCount <= 0 -> "share count has to be greater than zero"
+                priceLimit <= 0 -> "price limit has to be greater than zero"
                 dateLimitParsed == null -> "date limit could not be parsed"
                 dateLimitParsed.before(Date()) -> "request is expired"
-                request.mode == TradeRequest.Mode.SELL &&
-                        !depotService.hasEnoughShares(it.sender, request.isin, request.shareCount) -> "selling shares without property"
+                mode == TradeMode.SELL &&
+                        !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
                 else -> null
             }
 
             if (message != null) {
-                println("rejecting request with id = ${it.id} with reason '$message' ...")
+                println("rejecting request with id = $id with reason '$message' ...")
 
-                val rejection = TradeRejection(it.id, request, message)
-                tdbWrapper.createNewTransaction(it.chain, it.sender, rejection, true)
-                processedRequestIds.add(it.id)
+                val rejection = TradeRejection(id, request, message)
+                tdbWrapper.createNewTransaction(chain, sender, rejection, true)
+                processedRequestIds.add(id)
                 null
             } else {
                 it
@@ -60,30 +62,26 @@ class TradeContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
 
         val matchedRequestIds = mutableSetOf<Int>()
         validRequests.forEachNonEqualPair { transaction1, transaction2 ->
-            val id1 = transaction1.id
-            val id2 = transaction2.id
-            val request1 = transaction1.document
-            val request2 = transaction2.document
+            val (chain1, id1, sender1, _, request1) = transaction1
+            val (chain2, id2, sender2, _, request2) = transaction2
+            val (mode1, user1, isin1, shareCount1, priceLimit1, _) = request1
+            val (mode2, user2, isin2, shareCount2, priceLimit2, _) = request2
 
-            if (!matchedRequestIds.contains(id1) &&
-                    !matchedRequestIds.contains(id2) &&
-                    request1.mode == TradeRequest.Mode.BUY &&
-                    request2.mode == TradeRequest.Mode.SELL &&
-                    request1.isin == request2.isin &&
-                    request1.shareCount == request2.shareCount &&
-                    request1.priceLimit >= request2.priceLimit) {
-                val price = (request1.priceLimit + request2.priceLimit) / 2
+            if (!matchedRequestIds.contains(id1) && !matchedRequestIds.contains(id2) &&
+                    mode1 == TradeMode.BUY && mode2 == TradeMode.SELL &&
+                    isin1 == isin2 && shareCount1 == shareCount2 && priceLimit1 >= priceLimit2) {
+                val price = (priceLimit1 + priceLimit2) / 2
 
-                println("confirming trades for ${request1.shareCount} shares of ${request1.isin} at price $price ...")
+                println("confirming trades for $shareCount1 shares of $isin1 at price $price ...")
 
-                val confirmation1 = TradeConfirmation(id1, request1, price)
-                tdbWrapper.createNewTransaction(transaction1.chain, transaction1.sender, confirmation1, true)
-                depotService.add(transaction1.sender, confirmation1)
+                val confirmation1 = TradeConfirmation(id1, mode1, user1, isin1, shareCount1, price)
+                tdbWrapper.createNewTransaction(chain1, sender1, confirmation1, true)
+                depotService.add(confirmation1)
                 matchedRequestIds.add(id1)
 
-                val confirmation2 = TradeConfirmation(id2, request2, price)
-                tdbWrapper.createNewTransaction(transaction2.chain, transaction2.sender, confirmation2, true)
-                depotService.add(transaction2.sender, confirmation2)
+                val confirmation2 = TradeConfirmation(id2, mode2, user2, isin2, shareCount2, price)
+                tdbWrapper.createNewTransaction(chain2, sender2, confirmation2, true)
+                depotService.add(confirmation2)
                 matchedRequestIds.add(id2)
             }
         }

@@ -36,10 +36,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
         println("processing ${openDocuments.size} open documents ...")
 
         openDocuments.forEach {
-            val document = it.document
-            val id = it.id
-            val sender = it.sender
-            val chain = it.chain
+            val (chain, id, sender, _, document) = it
 
             when (document) {
                 is TransferRequest -> handleTransferRequest(chain, id, sender, document)
@@ -54,9 +51,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
 
     private fun handleTransferRequest(chain: String, id: Int, sender: String, request: TransferRequest) {
         val payer = sender
-        val payee = request.payee
-        val amount = request.amount
-        val purpose = request.purpose
+        val (payee, amount, purpose) = request
 
         println("verifying transfer request ...")
 
@@ -85,11 +80,8 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
 
     private fun handleDepotRequest(chain: String, id: Int, sender: String, request: DepotRequest) {
         val user = sender
-        val mode = request.mode
-        val isin = request.isin
-        val shareCount = request.shareCount
-        val priceLimit = request.priceLimit
-        val dateLimit = try { dateFormat.parse(request.dateLimit) } catch (e: Exception) { null }
+        val (mode, isin, shareCount, priceLimit, dateLimit) = request
+        val dateLimitParsed = try { dateFormat.parse(dateLimit) } catch (e: Exception) { null }
 
         println("verifying depot request ...")
 
@@ -97,8 +89,8 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
             !daxMap.containsKey(isin) -> "isin is not valid"
             shareCount <= 0 -> "share count has to be greater than zero"
             priceLimit <= 0 -> "price limit has to be greater than zero"
-            dateLimit == null -> "date limit could not be parsed"
-            dateLimit.before(Date()) -> "request is expired"
+            dateLimitParsed == null -> "date limit could not be parsed"
+            dateLimitParsed.before(Date()) -> "request is expired"
             mode == TradeMode.SELL &&
                     !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
             else -> null
@@ -121,10 +113,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
     }
 
     private fun handleTradeConfirmation(chain: String, id: Int, sender: String, confirmation: TradeConfirmation) {
-        val user = confirmation.user
-        val isin = confirmation.isin
-        val shareCount = confirmation.shareCount
-        val price = confirmation.price
+        val (_, _, user, isin, shareCount, price) = confirmation
 
         println("forward trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro")
 
@@ -134,10 +123,7 @@ class CashContract(tdbWrapper: TDBWrapper) : Contract(tdbWrapper) {
 
     private fun handleTradeRejection(chain: String, id: Int, sender: String, rejection: TradeRejection) {
         val request = rejection.request
-        val user = request.user
-        val isin = request.isin
-        val shareCount = request.shareCount
-        val priceLimit = request.priceLimit
+        val (_, user, isin, shareCount, priceLimit) = request
 
         println("forward trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro")
 

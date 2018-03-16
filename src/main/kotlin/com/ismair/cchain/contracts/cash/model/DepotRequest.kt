@@ -5,11 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class DepotRequest(
-        val mode: Mode,
+        val mode: DepotMode,
         val isin: String,
         val shareCount: Int,
         val priceLimit: Int,
         val dateLimit: String
-) : ContractRequest {
-    enum class Mode { BUY, SELL }
-}
+) : ContractRequest
