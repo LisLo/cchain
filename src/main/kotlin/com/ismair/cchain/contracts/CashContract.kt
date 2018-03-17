@@ -2,6 +2,9 @@ package com.ismair.cchain.contracts
 
 import com.ismair.cchain.abstracts.Contract
 import com.ismair.cchain.data.daxMap
+import com.ismair.cchain.model.cheat.CheatConfirmation
+import com.ismair.cchain.model.cheat.CheatMode
+import com.ismair.cchain.model.cheat.CheatRequest
 import com.ismair.cchain.model.depot.DepotConfirmation
 import com.ismair.cchain.model.depot.DepotMode
 import com.ismair.cchain.model.depot.DepotRejection
@@ -29,6 +32,7 @@ class CashContract(
         private val tradePublicKeyPKCS8: String
 ) : Contract(tdbWrapper) {
     private val responses = tdbWrapper.getParsedSentTransactions(listOf(
+            CheatConfirmation::class,
             TransferConfirmation::class, TransferRejection::class,
             RightConfirmation::class, RightRejection::class,
             DepotConfirmation::class, DepotRejection::class,
@@ -37,6 +41,7 @@ class CashContract(
     private val balanceService = BalanceService(responses.mapNotNull { it.document as? TransferConfirmation })
     private val authorizationService = AuthorizationService(responses.mapNotNull { it.document as? RightConfirmation })
     private val depotService = DepotService(responses.mapNotNull { it.document as? TradeConfirmation })
+    private val acceptedEmployees = mutableSetOf<String>()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd")
 
     override fun run() {
@@ -44,7 +49,7 @@ class CashContract(
 
         val openDocuments = tdbWrapper
                 .getParsedReceivedTransactions(listOf(
-                        TransferRequest::class, RightRequest::class, DepotRequest::class,
+                        CheatRequest::class, TransferRequest::class, RightRequest::class, DepotRequest::class,
                         TradeConfirmation::class, TradeRejection::class))
                 .filter { !processedRequestIds.contains(it.id) }
 
@@ -54,6 +59,7 @@ class CashContract(
             val (chain, id, sender, _, document) = it
 
             when (document) {
+                is CheatRequest -> handleCheatRequest(chain, id, sender, document)
                 is TransferRequest -> handleTransferRequest(chain, id, sender, document)
                 is RightRequest -> handleRightRequest(chain, id, sender, document)
                 is DepotRequest -> handleDepotRequest(chain, id, sender, document)
@@ -63,6 +69,28 @@ class CashContract(
 
             processedRequestIds.add(it.id)
         }
+    }
+
+    private fun handleCheatRequest(chain: String, id: Int, sender: String, request: CheatRequest) {
+        val user = sender
+        val (mode) = request
+
+        println("processing cheat request with mode '$mode' ...")
+
+        when (mode) {
+            CheatMode.MONEY -> {
+                val amount = 1000 * 100
+                val purpose = "cheat"
+                val confirmation = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
+                tdbWrapper.createNewTransaction(chain, user, confirmation, true)
+                balanceService.add(confirmation)
+            }
+            CheatMode.EMPLOYEE -> acceptedEmployees.add(user)
+            CheatMode.SHARES -> {}
+        }
+
+        val confirmation = CheatConfirmation(id, mode)
+        tdbWrapper.createNewTransaction(chain, user, confirmation, true)
     }
 
     private fun handleTransferRequest(chain: String, id: Int, sender: String, request: TransferRequest) {
