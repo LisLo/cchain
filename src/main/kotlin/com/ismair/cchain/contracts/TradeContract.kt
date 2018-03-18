@@ -68,6 +68,8 @@ class TradeContract(
 
             processedRequestIds.add(it.id)
         }
+
+        println("done!")
     }
 
     private fun handleCheatRequest(chain: String, id: Int, sender: String, request: CheatRequest) {

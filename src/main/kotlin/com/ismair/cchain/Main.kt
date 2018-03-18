@@ -4,6 +4,7 @@ import com.ismair.cchain.contracts.CashContract
 import com.ismair.cchain.contracts.TradeContract
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.DefaultHelpFormatter
+import com.xenomachina.argparser.default
 import com.xenomachina.argparser.mainBody
 import de.transbase.cchain.extensions.toPrivateKey
 import de.transbase.cchain.extensions.toPublicKey
@@ -21,6 +22,7 @@ class ArgumentClass(parser: ArgParser) {
         const val HELP_TEXT_URL = "url to the transaction database"
         const val HELP_TEXT_USER = "username of the transaction database"
         const val HELP_TEXT_PASS = "password of the transaction database"
+        const val HELP_TEXT_INTERVAL = "seconds waited until next pull request"
     }
 
     val contractType by parser.mapping(
@@ -33,6 +35,7 @@ class ArgumentClass(parser: ArgParser) {
     val url by parser.storing(HELP_TEXT_URL)
     val user by parser.storing(HELP_TEXT_USER)
     val pass by parser.storing(HELP_TEXT_PASS)
+    val interval by parser.storing(HELP_TEXT_INTERVAL) { toLong() }.default<Long?>(null)
 }
 
 fun readKey(path: String) = File(path).readText()
@@ -47,6 +50,7 @@ fun main(args: Array<String>) = mainBody {
     val parsedArgs = ArgParser(args, helpFormatter = DefaultHelpFormatter(info)).parseInto(::ArgumentClass)
 
     parsedArgs.run {
+        val interval = interval
         val (cashPublicKeyPKCS8, cashPublicKey) = readPublicKey(cashPub)
         val (tradePublicKeyPKCS8, tradePublicKey) = readPublicKey(tradePub)
         val privateKey = readKey(priv).toPrivateKey()
@@ -65,6 +69,9 @@ fun main(args: Array<String>) = mainBody {
         while (true) {
             try {
                 contract.run()
+                if (interval != null) {
+                    Thread.sleep(interval * 1000)
+                }
             } catch (e: Exception) {
                 println("an exception was thrown (${e.message}), restarting contract ...")
             }

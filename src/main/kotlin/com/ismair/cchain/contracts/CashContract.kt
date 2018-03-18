@@ -69,6 +69,8 @@ class CashContract(
 
             processedRequestIds.add(it.id)
         }
+
+        println("done!")
     }
 
     private fun handleCheatRequest(chain: String, id: Int, sender: String, request: CheatRequest) {
@@ -191,6 +193,12 @@ class CashContract(
     private fun handleTradeConfirmation(chain: String, id: Int, sender: String, confirmation: TradeConfirmation) {
         val (_, mode, user, isin, shareCount, priceLimit, price) = confirmation
 
+        println("verifying depot request ...")
+
+        if (sender != tradePublicKeyPKCS8) {
+            return
+        }
+
         println("forwarding trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro ...")
 
         tdbWrapper.createNewTransaction(chain, user, confirmation, true)
@@ -212,6 +220,12 @@ class CashContract(
     private fun handleTradeRejection(chain: String, id: Int, sender: String, rejection: TradeRejection) {
         val request = rejection.request
         val (mode, user, isin, shareCount, priceLimit) = request
+
+        println("verifying depot request ...")
+
+        if (sender != tradePublicKeyPKCS8) {
+            return
+        }
 
         println("forwarding trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro ...")
 

@@ -25,15 +25,14 @@ defaultTasks 'run'
 
 run {
     args = [
-            //"--cash",
             "--trade",
             "--trade-pub=keys/trade/publicKey.pem",
-            "--trade-priv=keys/trade/privateKey.pem",
             "--cash-pub=keys/cash/publicKey.pem",
-            "--cash-priv=keys/cash/privateKey.pem",
+            "--priv=keys/trade/privateKey.pem",
             "--url=https://securebase.transbase.de:50443/REST/TDB/",
             "--user=SecureBase2017",
-            "--pass=|NrBQF!ntpp'"
+            "--pass=|NrBQF!ntpp'",
+            "--interval=10"
     ]
 }
 
