@@ -1,6 +1,6 @@
 package com.ismair.cchain.model.right
 
-import com.ismair.cchain.abstracts.ContractRequest
+import com.ismair.cchain.model.ContractRequest
 import kotlinx.serialization.Serializable
 
 @Serializable

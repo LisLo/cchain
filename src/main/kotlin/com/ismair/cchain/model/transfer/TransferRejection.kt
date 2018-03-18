@@ -1,6 +1,6 @@
 package com.ismair.cchain.model.transfer
 
-import com.ismair.cchain.abstracts.ContractResponse
+import com.ismair.cchain.model.ContractResponse
 import kotlinx.serialization.Serializable
 
 @Serializable

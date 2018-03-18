@@ -1,3 +1,3 @@
-package com.ismair.cchain.abstracts
+package com.ismair.cchain.model
 
 abstract class ContractRequest : ContractDocument()

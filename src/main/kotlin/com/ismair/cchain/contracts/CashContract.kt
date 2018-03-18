@@ -1,6 +1,5 @@
 package com.ismair.cchain.contracts
 
-import com.ismair.cchain.abstracts.Contract
 import com.ismair.cchain.data.daxMap
 import com.ismair.cchain.model.cheat.CheatConfirmation
 import com.ismair.cchain.model.cheat.CheatMode
