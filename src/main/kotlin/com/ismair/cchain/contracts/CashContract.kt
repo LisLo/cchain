@@ -40,7 +40,6 @@ class CashContract(
     private val balanceService = BalanceService(responses.mapNotNull { it.document as? TransferConfirmation })
     private val authorizationService = AuthorizationService(responses.mapNotNull { it.document as? RightConfirmation })
     private val depotService = DepotService(responses.mapNotNull { it.document as? TradeConfirmation })
-    private val acceptedEmployees = mutableSetOf<String>()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd")
 
     override fun run() {
@@ -86,7 +85,6 @@ class CashContract(
                 tdbWrapper.createNewTransaction(chain, user, confirmation, true)
                 balanceService.add(confirmation)
             }
-            CheatMode.EMPLOYEE -> acceptedEmployees.add(user)
             CheatMode.SHARES -> {}
         }
 
