@@ -79,7 +79,6 @@ class TradeContract(
 
         when (mode) {
             CheatMode.MONEY -> {}
-            CheatMode.EMPLOYEE -> {}
             CheatMode.SHARES -> {
                 val isin = daxMap.keys.first()
                 val shareCount = 100
