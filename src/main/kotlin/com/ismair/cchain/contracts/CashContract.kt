@@ -143,6 +143,8 @@ class CashContract(
 
             val confirmation = RightConfirmation(id, user)
             tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
+            tdbWrapper.createNewTransaction(chain, user, confirmation, true)
+            authorizationService.add(confirmation)
         }
     }
 
