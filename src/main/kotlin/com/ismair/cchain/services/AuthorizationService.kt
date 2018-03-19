@@ -1,5 +1,6 @@
 package com.ismair.cchain.services
 
+import com.ismair.cchain.extensions.shrink
 import com.ismair.cchain.model.right.RightConfirmation
 
 class AuthorizationService(list: List<RightConfirmation>) {
@@ -12,9 +13,9 @@ class AuthorizationService(list: List<RightConfirmation>) {
 
     fun add(confirmation: RightConfirmation) {
         if (requestIds.contains(confirmation.requestId)) {
-            authorizedUsers.add(confirmation.user)
+            authorizedUsers.add(confirmation.user.shrink())
         }
     }
 
-    fun hasRight(user: String) = authorizedUsers.contains(user)
+    fun hasRight(user: String) = authorizedUsers.contains(user.shrink())
 }

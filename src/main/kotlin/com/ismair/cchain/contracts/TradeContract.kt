@@ -1,6 +1,7 @@
 package com.ismair.cchain.contracts
 
 import com.ismair.cchain.data.daxMap
+import com.ismair.cchain.extensions.shrink
 import com.ismair.cchain.model.cheat.CheatConfirmation
 import com.ismair.cchain.model.cheat.CheatMode
 import com.ismair.cchain.model.cheat.CheatRequest
@@ -101,7 +102,7 @@ class TradeContract(
         println("verifying trade request ...")
 
         val message = when {
-            sender != cashPublicKeyPKCS8 -> "sender is not accepted"
+            sender.shrink() != cashPublicKeyPKCS8.shrink() -> "sender is not accepted"
             user.isEmpty() -> "user is required"
             !daxMap.containsKey(isin) -> "isin is not valid"
             shareCount <= 0 -> "share count has to be greater than zero"

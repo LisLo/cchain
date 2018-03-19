@@ -1,6 +1,7 @@
 package com.ismair.cchain.contracts
 
 import com.ismair.cchain.data.daxMap
+import com.ismair.cchain.extensions.shrink
 import com.ismair.cchain.model.cheat.CheatConfirmation
 import com.ismair.cchain.model.cheat.CheatMode
 import com.ismair.cchain.model.cheat.CheatRequest
@@ -102,7 +103,7 @@ class CashContract(
             payee.isEmpty() -> "payee is required"
             amount <= 0 -> "amount has to be greater than zero"
             purpose.isEmpty() -> "purpose is required"
-            //TODO !balanceService.hasEnoughMoney(payer, amount) -> "amount is greater than the balance"
+            !balanceService.hasEnoughMoney(payer, amount) -> "amount is greater than the balance"
             else -> null
         }
 
@@ -160,8 +161,8 @@ class CashContract(
             dateLimitParsed == null -> "date limit could not be parsed"
             dateLimitParsed.before(Date()) -> "request is expired"
             authorizationService.hasRight(user) -> "user is not authorized for depot requests"
-            /*TODO mode == TradeMode.SELL &&
-                    !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"*/
+            mode == TradeMode.SELL &&
+                    !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
             else -> null
         }
 
@@ -194,9 +195,9 @@ class CashContract(
 
         println("verifying trade confirmation ...")
 
-        /*TODO if (sender != tradePublicKeyPKCS8) {
+        if (sender.shrink() != tradePublicKeyPKCS8.shrink()) {
             return
-        }*/
+        }
 
         println("forwarding trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro ...")
 
@@ -223,9 +224,9 @@ class CashContract(
 
         println("verifying trade rejection ...")
 
-        /*TODO if (sender != tradePublicKeyPKCS8) {
+        if (sender.shrink() != tradePublicKeyPKCS8.shrink()) {
             return
-        }*/
+        }
 
         println("forwarding trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro ...")
 

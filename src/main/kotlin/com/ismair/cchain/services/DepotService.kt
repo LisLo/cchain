@@ -1,5 +1,6 @@
 package com.ismair.cchain.services
 
+import com.ismair.cchain.extensions.shrink
 import com.ismair.cchain.model.trade.TradeConfirmation
 import com.ismair.cchain.model.trade.TradeMode
 
@@ -13,7 +14,7 @@ class DepotService(list: List<TradeConfirmation>) {
 
     fun add(confirmation: TradeConfirmation) {
         if (requestIds.contains(confirmation.requestId)) {
-            val key = Pair(confirmation.user, confirmation.isin)
+            val key = Pair(confirmation.user.shrink(), confirmation.isin)
             val shareCount = confirmation.shareCount
             val signedShareCount = if (confirmation.mode == TradeMode.BUY) shareCount else -shareCount
             shares[key] = shares.getOrDefault(key, 0) + signedShareCount
@@ -21,7 +22,7 @@ class DepotService(list: List<TradeConfirmation>) {
     }
 
     fun hasEnoughShares(user: String, isin: String, shareCount: Int): Boolean {
-        val share = shares[Pair(user, isin)]
+        val share = shares[Pair(user.shrink(), isin)]
         return share != null && share >= shareCount
     }
 }
