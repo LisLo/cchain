@@ -154,6 +154,8 @@ class CashContract(
 
         println("verifying depot request ...")
 
+        println(depotService.hasEnoughShares(user, isin, shareCount))
+
         val message = when {
             !daxMap.containsKey(isin) -> "isin is not valid"
             shareCount <= 0 -> "share count has to be greater than zero"
@@ -161,9 +163,9 @@ class CashContract(
             dateLimitParsed == null -> "date limit could not be parsed"
             dateLimitParsed.before(Date()) -> "request is expired"
             !authorizationService.hasRight(user) -> "user is not authorized for depot requests"
-            mode == TradeMode.BUY &&
+            mode == DepotMode.BUY &&
                     !balanceService.hasEnoughMoney(user, priceLimit * shareCount) -> "amount is greater than the balance"
-            mode == TradeMode.SELL &&
+            mode == DepotMode.SELL &&
                     !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
             else -> null
         }
