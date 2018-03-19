@@ -25,15 +25,25 @@ defaultTasks 'run'
 
 run {
     args = [
+            "--cash",
+            "--cash-pub=keys/cash2/publicKey.pem",
+            "--trade-pub=keys/trade/publicKey.pem",
+            "--priv=keys/cash2/privateKey.pem",
+            "--url=https://securebase.transbase.de:50443/REST/TDB/",
+            "--user=SecureBase2017",
+            "--pass=|NrBQF!ntpp'",
+            "--interval=5"
+    ]
+    /*args = [
             "--trade",
             "--trade-pub=keys/trade/publicKey.pem",
-            "--cash-pub=keys/cash/publicKey.pem",
+            "--cash-pub=keys/cash2/publicKey.pem",
             "--priv=keys/trade/privateKey.pem",
             "--url=https://securebase.transbase.de:50443/REST/TDB/",
             "--user=SecureBase2017",
             "--pass=|NrBQF!ntpp'",
-            "--interval=10"
-    ]
+            "--interval=5"
+    ]*/
 }
 
 jar {

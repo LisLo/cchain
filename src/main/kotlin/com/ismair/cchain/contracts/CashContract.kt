@@ -80,7 +80,7 @@ class CashContract(
 
         when (mode) {
             CheatMode.MONEY -> {
-                val amount = 1000 * 100
+                val amount = 1000
                 val purpose = "cheat"
                 val confirmation = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
                 tdbWrapper.createNewTransaction(chain, user, confirmation, true)
@@ -104,7 +104,7 @@ class CashContract(
             payee.isEmpty() -> "payee is required"
             amount <= 0 -> "amount has to be greater than zero"
             purpose.isEmpty() -> "purpose is required"
-            !balanceService.hasEnoughMoney(payer, amount) -> "amount is greater than the balance"
+            //TODO !balanceService.hasEnoughMoney(payer, amount) -> "amount is greater than the balance"
             else -> null
         }
 
@@ -160,8 +160,8 @@ class CashContract(
             dateLimitParsed == null -> "date limit could not be parsed"
             dateLimitParsed.before(Date()) -> "request is expired"
             authorizationService.hasRight(user) -> "user is not authorized for depot requests"
-            mode == TradeMode.SELL &&
-                    !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
+            /*TODO mode == TradeMode.SELL &&
+                    !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"*/
             else -> null
         }
 
@@ -192,11 +192,11 @@ class CashContract(
     private fun handleTradeConfirmation(chain: String, id: Int, sender: String, confirmation: TradeConfirmation) {
         val (_, mode, user, isin, shareCount, priceLimit, price) = confirmation
 
-        println("verifying depot request ...")
+        println("verifying trade confirmation ...")
 
-        if (sender != tradePublicKeyPKCS8) {
+        /*TODO if (sender != tradePublicKeyPKCS8) {
             return
-        }
+        }*/
 
         println("forwarding trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro ...")
 
@@ -220,11 +220,11 @@ class CashContract(
         val request = rejection.request
         val (mode, user, isin, shareCount, priceLimit) = request
 
-        println("verifying depot request ...")
+        println("verifying trade rejection ...")
 
-        if (sender != tradePublicKeyPKCS8) {
+        /*TODO if (sender != tradePublicKeyPKCS8) {
             return
-        }
+        }*/
 
         println("forwarding trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro ...")
 

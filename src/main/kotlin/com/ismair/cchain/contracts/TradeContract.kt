@@ -83,10 +83,10 @@ class TradeContract(
             CheatMode.SHARES -> {
                 val isin = daxMap.keys.first()
                 val shareCount = 100
-                val priceLimit = 4200
-                val price = 4200
+                val priceLimit = 42
+                val price = 42
                 val confirmation = TradeConfirmation(id, TradeMode.BUY, user, isin, shareCount, priceLimit, price)
-                tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
+                tdbWrapper.createNewTransaction(chain, cashPublicKeyPKCS8, confirmation, true)
                 depotService.add(confirmation)
             }
         }
