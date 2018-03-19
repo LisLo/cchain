@@ -12,8 +12,10 @@ class AuthorizationService(list: List<RightConfirmation>) {
     }
 
     fun add(confirmation: RightConfirmation) {
-        if (requestIds.contains(confirmation.requestId)) {
-            authorizedUsers.add(confirmation.user.shrink())
+        val (requestId, user) = confirmation
+        if (!requestIds.contains(requestId)) {
+            authorizedUsers.add(user.shrink())
+            requestIds.add(requestId)
         }
     }
 

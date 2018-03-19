@@ -17,9 +17,11 @@ class BalanceService(list: List<TransferConfirmation>) {
     }
 
     fun add(confirmation: TransferConfirmation) {
-        if (requestIds.contains(confirmation.requestId)) {
-            add(confirmation.payer.shrink(), -confirmation.amount)
-            add(confirmation.payee.shrink(), +confirmation.amount)
+        val (requestId, payer, payee, amount, _) = confirmation
+        if (!requestIds.contains(requestId)) {
+            add(payer.shrink(), -amount)
+            add(payee.shrink(), +amount)
+            requestIds.add(requestId)
         }
     }
 

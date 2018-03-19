@@ -160,7 +160,9 @@ class CashContract(
             priceLimit <= 0 -> "price limit has to be greater than zero"
             dateLimitParsed == null -> "date limit could not be parsed"
             dateLimitParsed.before(Date()) -> "request is expired"
-            authorizationService.hasRight(user) -> "user is not authorized for depot requests"
+            !authorizationService.hasRight(user) -> "user is not authorized for depot requests"
+            mode == TradeMode.BUY &&
+                    !balanceService.hasEnoughMoney(user, priceLimit * shareCount) -> "amount is greater than the balance"
             mode == TradeMode.SELL &&
                     !depotService.hasEnoughShares(user, isin, shareCount) -> "selling shares without property"
             else -> null
@@ -182,7 +184,7 @@ class CashContract(
                 val amount = priceLimit * shareCount
                 val purpose = "freeze for the request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro"
                 val confirmation = TransferConfirmation(id, user, cashPublicKeyPKCS8, amount, purpose)
-                tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
+                tdbWrapper.createNewTransaction(chain, user, confirmation, true)
             }
 
             val confirmation = DepotConfirmation(id, mode, isin, shareCount, priceLimit, dateLimit)
@@ -214,7 +216,7 @@ class CashContract(
             val amount = (priceLimit - price) * shareCount
             val purpose = "purchase of $shareCount shares of '$isin' with a price difference of $amount cEuro"
             val confirmation2 = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
-            tdbWrapper.createNewTransaction(chain, sender, confirmation2, true)
+            tdbWrapper.createNewTransaction(chain, user, confirmation2, true)
         }
     }
 
@@ -237,7 +239,7 @@ class CashContract(
             val amount = priceLimit * shareCount
             val purpose = "payback for the request of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro"
             val confirmation = TransferConfirmation(id, cashPublicKeyPKCS8, user, amount, purpose)
-            tdbWrapper.createNewTransaction(chain, sender, confirmation, true)
+            tdbWrapper.createNewTransaction(chain, user, confirmation, true)
         }
     }
 }

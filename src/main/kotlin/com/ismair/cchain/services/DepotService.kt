@@ -13,11 +13,12 @@ class DepotService(list: List<TradeConfirmation>) {
     }
 
     fun add(confirmation: TradeConfirmation) {
-        if (requestIds.contains(confirmation.requestId)) {
-            val key = Pair(confirmation.user.shrink(), confirmation.isin)
-            val shareCount = confirmation.shareCount
-            val signedShareCount = if (confirmation.mode == TradeMode.BUY) shareCount else -shareCount
+        val (requestId, mode, user, isin, shareCount, _, _) = confirmation
+        if (!requestIds.contains(requestId)) {
+            val key = Pair(user.shrink(), isin)
+            val signedShareCount = if (mode == TradeMode.BUY) shareCount else -shareCount
             shares[key] = shares.getOrDefault(key, 0) + signedShareCount
+            requestIds.add(requestId)
         }
     }
 
