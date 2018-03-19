@@ -200,8 +200,9 @@ class CashContract(
 
         println("forwarding trade confirmation of $shareCount shares of '$isin' with a price of $price cEuro ...")
 
-        tdbWrapper.createNewTransaction(chain, user, confirmation, true)
-        depotService.add(confirmation)
+        val forwardedConfirmation = TradeConfirmation(id, mode, user, isin, shareCount, priceLimit, price)
+        tdbWrapper.createNewTransaction(chain, user, forwardedConfirmation, true)
+        depotService.add(forwardedConfirmation)
 
         if (mode == TradeMode.SELL) {
             val amount = price * shareCount
@@ -217,7 +218,7 @@ class CashContract(
     }
 
     private fun handleTradeRejection(chain: String, id: Int, sender: String, rejection: TradeRejection) {
-        val request = rejection.request
+        val (_, request, message) = rejection
         val (mode, user, isin, shareCount, priceLimit) = request
 
         println("verifying trade rejection ...")
@@ -228,7 +229,8 @@ class CashContract(
 
         println("forwarding trade rejection of $shareCount shares of '$isin' with a price limit of $priceLimit cEuro ...")
 
-        tdbWrapper.createNewTransaction(chain, user, rejection, true)
+        val forwardedRejection = TradeRejection(id, request, message)
+        tdbWrapper.createNewTransaction(chain, user, forwardedRejection, true)
 
         if (mode == TradeMode.BUY) {
             val amount = priceLimit * shareCount
